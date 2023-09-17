@@ -400,3 +400,4 @@ FodyWeavers.xsd
 # Manually added
 *.editorconfig
 /src/Properties/launchSettings.json
+/src/pub/win-x64
