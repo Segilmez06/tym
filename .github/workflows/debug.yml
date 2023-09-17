@@ -1,0 +1,33 @@
+name: Debug
+
+on:
+  push:
+    branches:
+      - dev
+
+jobs:
+  build-and-publish:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [windows-latest, windows-arm64, ubuntu-latest, ubuntu-arm64, macos-latest, macos-arm64]
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup .NET Core
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '7.0.x'
+
+      - name: Build
+        run: dotnet build src/TYM.csproj
+
+      - name: Publish
+        run: dotnet publish src/TYM.csproj -c ${{ matrix.configuration }} -o src/pub/${{ matrix.os }}/${{ matrix.configuration }}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.os }}-${{ matrix.configuration }}
+          path: src/pub/${{ matrix.os }}/${{ matrix.configuration }}
