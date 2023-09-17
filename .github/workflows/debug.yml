@@ -24,10 +24,10 @@ jobs:
         run: dotnet build src/TYM.csproj
 
       - name: Publish
-        run: dotnet publish src/TYM.csproj -c ${{ matrix.configuration }} -o src/pub/${{ matrix.os }}/${{ matrix.configuration }}
+        run: dotnet publish src/TYM.csproj /p:PublishProfile=src/Properties/PublishProfiles/${{ matrix.os }}.pubxml
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: ${{ matrix.os }}-${{ matrix.configuration }}
-          path: src/pub/${{ matrix.os }}/${{ matrix.configuration }}
+          name: ${{ matrix.os }}
+          path: src/pub/${{ matrix.os }}
