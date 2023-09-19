@@ -10,5 +10,6 @@
 
 - [x] Resampler list and selection
 - [ ] Size option
-- [ ] Starting point on screen
+- [x] Starting point on screen
 - [ ] Disable true-color and use predefined VT100 colors option
+- [ ] Resize method (fit, stretch, crop)
