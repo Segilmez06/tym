@@ -8,7 +8,7 @@
 
 ## CLI Args
 
-- [ ] Resampler list and selection to CLI args
-- [ ] Size option to CLI args
-- [ ] Starting location to CLI args
-- [ ] Disable true-color and use predefined VT100 colors option to CLI args
+- [x] Resampler list and selection
+- [ ] Size option
+- [ ] Starting point on screen
+- [ ] Disable true-color and use predefined VT100 colors option

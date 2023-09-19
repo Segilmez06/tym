@@ -1,5 +1,10 @@
 ﻿using CommandLine;
 
+using SixLabors.ImageSharp.Processing.Processors.Transforms;
+
+using System.Linq;
+using System.Reflection;
+
 using static TYM.BlockChars;
 
 namespace TYM
@@ -13,8 +18,14 @@ namespace TYM
 
     public class Options
     {
-        [Value(0, MetaName = "Path", Required = true, HelpText = "Path of image file.")]
+        [Value(0, MetaName = "Path", Required = false, HelpText = "Path to the image file.")]
         public string? FilePath { get; set; }
+
+        [Option('r', "resampler", Required = false, Default = "MitchellNetravali", HelpText = "Resampling algorithm for downsizing.")]
+        public string? ResamplerName { get; set; }
+
+        [Option('l', "list-resamplers", Required = false, Default = false, HelpText = "List available resampling algorithms.")]
+        public bool ListResamplers { get; set; }
     }
 
     public class App
@@ -28,18 +39,43 @@ namespace TYM
 
         private void Run(Options CommandLineOptions)
         {
+            if (CommandLineOptions.ListResamplers)
+            {
+                Console.WriteLine("\u001b[32mAvailable resampling algorithms:");
+                Console.Write("\x1b[33m");
+                typeof(KnownResamplers).GetProperties().ToList().ForEach(x => Console.WriteLine(x.Name));
+                Console.WriteLine("\x1b[39m");
+
+                Environment.Exit(0);
+            }
+
+            PropertyInfo? ResamplerProperty = typeof(KnownResamplers).GetProperty(CommandLineOptions.ResamplerName);
+            if (ResamplerProperty == null)
+            {
+                Console.WriteLine("\x1b[31mError:\x1b[37m Invalid resampler specified.\x1b[39m");
+                Environment.Exit(1);
+            }
+            IResampler Resampler = (IResampler)ResamplerProperty.GetValue(typeof(KnownResamplers));
+            if (Resampler == null)
+            {
+                Console.WriteLine("\x1b[31mError:\x1b[37m Error occured while fetching resampler.\x1b[39m");
+                Environment.Exit(1);
+            }
+
+
             string? ImagePath = CommandLineOptions.FilePath;
             if (Path.Exists(ImagePath))
             {
                 Size TermSize = new(Console.BufferWidth, Console.BufferHeight);
-                Size TargetSize = new(TermSize.Width / 2, TermSize.Height / 2);
+                Size TargetSize = new(TermSize.Width / 2, TermSize.Height);
 
                 Image<Rgba32> Source = Image.Load<Rgba32>(ImagePath);
                 Source.Mutate(x => x.Resize(new ResizeOptions()
                 {
                     Size = TargetSize,
                     Mode = ResizeMode.Max,
-                    Sampler = KnownResamplers.MitchellNetravali
+                    Sampler = Resampler
+                    //Sampler = KnownResamplers.MitchellNetravali
 
                 }));
 
@@ -74,7 +110,8 @@ namespace TYM
             }
             else
             {
-                Console.WriteLine($"\x1b[31mError:\x1b[37m Can't open file!");
+                Console.WriteLine("\x1b[31mError:\x1b[37m Can't open file!");
+                Environment.Exit(1);
             }
         }
     }
