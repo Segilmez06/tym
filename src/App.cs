@@ -44,6 +44,11 @@ namespace TYM
 
         [Option('h', "height", Required = false, Default = 0, HelpText = "Output height as pixels. 1 char height = 2 pixels. Set to 0 for auto size.")]
         public int Height { get; set; }
+
+
+
+        [Option('m', "resize-method", Required = false, Default = "Contain", HelpText = "Resizing mode. Available options: Contain, Cover (Crop), Stretch")]
+        public string ResizeMethod { get; set; }
     }
 
     public class App
@@ -80,6 +85,18 @@ namespace TYM
                 Environment.Exit(1);
             }
 
+            Dictionary<string, ResizeMode> AvailableResizeModes = new(){
+                {"Contain", ResizeMode.Max},
+                {"Cover", ResizeMode.Crop},
+                {"Crop", ResizeMode.Crop},
+                {"Stretch", ResizeMode.Stretch}
+            };
+            if (!AvailableResizeModes.ContainsKey(CommandLineOptions.ResizeMethod)) 
+            {
+                Console.WriteLine("\x1b[31mError:\x1b[37m Invalid resize mode.\x1b[39m");
+                Environment.Exit(1);
+            }
+            ResizeMode SelectedResizeMode = AvailableResizeModes.GetValueOrDefault(CommandLineOptions.ResizeMethod);
 
             string? ImagePath = CommandLineOptions.FilePath;
             if (Path.Exists(ImagePath))
@@ -94,7 +111,7 @@ namespace TYM
                 Source.Mutate(x => x.Resize(new ResizeOptions()
                 {
                     Size = TargetSize,
-                    Mode = ResizeMode.Max,
+                    Mode = SelectedResizeMode,
                     Sampler = Resampler
                 }));
 
