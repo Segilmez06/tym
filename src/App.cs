@@ -31,11 +31,19 @@ namespace TYM
 
 
 
-        [Option('x', "x-margin", Required = false, Default = 0, HelpText = "Left margin size. Shifts the output from cursor start to right by specified character count. 1 char width = 1 pixel.")]
+        [Option('x', "x-margin", Required = false, Default = 0, HelpText = "Left margin size as characters. Shifts the output from cursor start to right by specified character count. 1 char width = 1 pixel.")]
         public int MarginX { get; set; }
 
-        [Option('y', "y-margin", Required = false, Default = 0, HelpText = "Top margin size. Shifts the output from cursor start to bottom by specified character count. 1 char height = 2 pixels.")]
+        [Option('y', "y-margin", Required = false, Default = 0, HelpText = "Top margin size as characters. Shifts the output from cursor start to bottom by specified character count. 1 char height = 2 pixels.")]
         public int MarginY { get; set; }
+
+
+
+        [Option('w', "width", Required = false, Default = 0, HelpText = "Output width as pixels. 1 char width = 1 pixel. Set to 0 for auto size.")]
+        public int Width { get; set; }
+
+        [Option('h', "height", Required = false, Default = 0, HelpText = "Output height as pixels. 1 char height = 2 pixels. Set to 0 for auto size.")]
+        public int Height { get; set; }
     }
 
     public class App
@@ -77,7 +85,10 @@ namespace TYM
             if (Path.Exists(ImagePath))
             {
                 Size TermSize = new(Console.BufferWidth, Console.BufferHeight);
-                Size TargetSize = new(TermSize.Width / 2, TermSize.Height);
+                Size TargetSize = new(
+                    CommandLineOptions.Width < 1 ? TermSize.Width / 2 : CommandLineOptions.Width,
+                    CommandLineOptions.Height < 1 ? TermSize.Height : CommandLineOptions.Height
+                );
 
                 Image<Rgba32> Source = Image.Load<Rgba32>(ImagePath);
                 Source.Mutate(x => x.Resize(new ResizeOptions()

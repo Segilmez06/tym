@@ -9,7 +9,7 @@
 ## CLI Args
 
 - [x] Resampler list and selection
-- [ ] Size option
+- [x] Size option
 - [x] Starting point on screen
 - [ ] Disable true-color and use predefined VT100 colors option
 - [ ] Resize method (fit, stretch, crop)
