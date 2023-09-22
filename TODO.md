@@ -2,8 +2,8 @@
 
 ## General
 
-- [ ] Create release workflow (submit release on merge to main branch)
-- [ ] Checking for VT100 true-color support on startup
+- [x] Create release workflow (submit release on merge to main branch)
+- [ ] ~~Checking for VT100 true-color support on startup~~
 - [ ] Support for downloading and rendering files directly from network
 
 ## CLI Args

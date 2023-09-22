@@ -49,6 +49,11 @@ namespace TYM
 
         [Option('m', "resize-method", Required = false, Default = "Contain", HelpText = "Resizing mode. Available options: Contain, Cover (Crop), Stretch")]
         public string ResizeMethod { get; set; }
+
+
+
+        [Option('t', "true-color", Required = false, Default = true, HelpText = "Whether to use true color mode or not.")]
+        public bool TrueColor { get; set; }
     }
 
     public class App
