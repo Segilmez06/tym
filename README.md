@@ -1,6 +1,6 @@
 ﻿# 🍉 TYM
-[![Debug build](https://github.com/Segilmez06/tym/actions/workflows/debug.yml/badge.svg)](https://github.com/Segilmez06/EFI-Runner/actions/workflows/debug-build.yml)
-[![Release build](https://github.com/Segilmez06/tym/actions/workflows/release.yml/badge.svg)](https://github.com/Segilmez06/EFI-Runner/actions/workflows/release-build.yml)
+[![Debug build](https://github.com/Segilmez06/tym/actions/workflows/debug.yml/badge.svg)](https://github.com/Segilmez06/EFI-Runner/actions/workflows/debug.yml)
+[![Release build](https://github.com/Segilmez06/tym/actions/workflows/release.yml/badge.svg)](https://github.com/Segilmez06/EFI-Runner/actions/workflows/release.yml)
 
 TYM is a cross-platform tool that renders image files in your terminal. It uses VT100 escape codes to display 24-bit true color images.
 

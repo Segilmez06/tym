@@ -3,6 +3,7 @@
 using SixLabors.ImageSharp.Processing.Processors.Transforms;
 
 using System.Linq;
+using System.Net;
 using System.Reflection;
 
 using static TYM.BlockChars;
@@ -18,7 +19,7 @@ namespace TYM
 
     public class Options
     {
-        [Value(0, MetaName = "Path", Required = false, HelpText = "Path to the image file.")]
+        [Value(0, MetaName = "Path", Required = false, HelpText = "Path to the image file. Also supports web links. (DANGER: USE WEB LINKS AT YOUR OWN RISK!)")]
         public string? FilePath { get; set; }
 
 
@@ -49,11 +50,6 @@ namespace TYM
 
         [Option('m', "resize-method", Required = false, Default = "Contain", HelpText = "Resizing mode. Available options: Contain, Cover (Crop), Stretch")]
         public string ResizeMethod { get; set; }
-
-
-
-        [Option('t', "true-color", Required = false, Default = true, HelpText = "Whether to use true color mode or not.")]
-        public bool TrueColor { get; set; }
     }
 
     public class App
@@ -73,10 +69,70 @@ namespace TYM
                 Console.Write("\x1b[33m");
                 typeof(KnownResamplers).GetProperties().ToList().ForEach(x => Console.WriteLine(x.Name));
                 Console.WriteLine("\x1b[39m");
-
+                
                 Environment.Exit(0);
             }
 
+            string? ImagePath = CommandLineOptions.FilePath;
+            if (Path.Exists(ImagePath)) // local image
+            {
+                ProcessImageFile(CommandLineOptions, ImagePath);
+            }
+            else // URI
+            {
+                if (Uri.IsWellFormedUriString(ImagePath, UriKind.Absolute))
+                {
+                    Uri WebURI;
+                    if (Uri.TryCreate(ImagePath, UriKind.Absolute, out WebURI))
+                    {
+                        if (WebURI.Scheme == Uri.UriSchemeHttps)
+                        {
+                            WebClient Client = new();
+                            Client.Headers.Add("Accept", "image/*");
+
+                            string DownloadDirectory = Path.Combine(Path.GetTempPath(), "TYM-Web-Downloads");
+                            Directory.CreateDirectory(DownloadDirectory);
+
+                            string TempFile = Path.Combine(DownloadDirectory, Guid.NewGuid().ToString());
+                            byte[] Data = Client.DownloadData(WebURI.ToString());
+                            bool IsMimeValid = new List<string>() {
+                                "image/jpeg",
+                                "image/bmp",
+                                "image/gif",
+                                "image/png",
+                                "image/tiff",
+                                "image/webp"
+                            }.Any(x => Client.ResponseHeaders["Content-Type"].Contains(x));
+                            if (IsMimeValid)
+                            {
+                                File.WriteAllBytes(TempFile, Data);
+                                ProcessImageFile(CommandLineOptions, TempFile);
+                            }
+                            else
+                            {
+                                Console.WriteLine($"\x1b[31mError:\x1b[37m Server returned invalid mime type \"{Client.ResponseHeaders["Content-Type"]}\"!");
+                                Environment.Exit(1);
+                            }
+                        }
+                        else
+                        {
+                            Console.WriteLine("\x1b[31mError:\x1b[37m Only HTTPS scheme supported!");
+                            Environment.Exit(1);
+                        }
+                    }
+                    else
+                    {
+                        Console.WriteLine("\x1b[31mError:\x1b[37m Can't parse URL!");
+                        Environment.Exit(1);
+                    }
+                }
+                Console.WriteLine("\x1b[31mError:\x1b[37m Can't open file!");
+                Environment.Exit(1);
+            }
+        }
+
+        private void ProcessImageFile(Options CommandLineOptions, string ImagePath)
+        {
             PropertyInfo? ResamplerProperty = typeof(KnownResamplers).GetProperty(CommandLineOptions.ResamplerName);
             if (ResamplerProperty == null)
             {
@@ -96,70 +152,63 @@ namespace TYM
                 {"Crop", ResizeMode.Crop},
                 {"Stretch", ResizeMode.Stretch}
             };
-            if (!AvailableResizeModes.ContainsKey(CommandLineOptions.ResizeMethod)) 
+            if (!AvailableResizeModes.ContainsKey(CommandLineOptions.ResizeMethod))
             {
                 Console.WriteLine("\x1b[31mError:\x1b[37m Invalid resize mode.\x1b[39m");
                 Environment.Exit(1);
             }
             ResizeMode SelectedResizeMode = AvailableResizeModes.GetValueOrDefault(CommandLineOptions.ResizeMethod);
 
-            string? ImagePath = CommandLineOptions.FilePath;
-            if (Path.Exists(ImagePath))
+            Size TermSize = new(Console.BufferWidth, Console.BufferHeight);
+            Size TargetSize = new(
+                CommandLineOptions.Width < 1 ? TermSize.Width / 2 : CommandLineOptions.Width,
+                CommandLineOptions.Height < 1 ? TermSize.Height : CommandLineOptions.Height
+            );
+
+            Image<Rgba32> Source = Image.Load<Rgba32>(ImagePath);
+            Source.Mutate(x => x.Resize(new ResizeOptions()
             {
-                Size TermSize = new(Console.BufferWidth, Console.BufferHeight);
-                Size TargetSize = new(
-                    CommandLineOptions.Width < 1 ? TermSize.Width / 2 : CommandLineOptions.Width,
-                    CommandLineOptions.Height < 1 ? TermSize.Height : CommandLineOptions.Height
-                );
+                Size = TargetSize,
+                Mode = SelectedResizeMode,
+                Sampler = Resampler
+            }));
 
-                Image<Rgba32> Source = Image.Load<Rgba32>(ImagePath);
-                Source.Mutate(x => x.Resize(new ResizeOptions()
+            string Buffer = "";
+            for (int y = 0; y < CommandLineOptions.MarginY; y++)
+            {
+                Buffer += "\n";
+            }
+            for (int y = 0; y < Source.Height / 2; y++)
+            {
+                string Line = "";
+                Line += $"\x1b[{CommandLineOptions.MarginX}C";
+                for (int x = 0; x < Source.Width; x++)
                 {
-                    Size = TargetSize,
-                    Mode = SelectedResizeMode,
-                    Sampler = Resampler
-                }));
+                    Rgba32[] PixelColors = { Source[x, (y * 2)], Source[x, (y * 2) + 1] };
 
-                string Buffer = "";
-                for (int y = 0; y < CommandLineOptions.MarginY; y++)
-                {
-                    Buffer += "\n";
-                }
-                for (int y = 0; y < Source.Height / 2; y++)
-                {
-                    string Line = "";
-                    Line += $"\x1b[{CommandLineOptions.MarginX}C";
-                    for (int x = 0; x < Source.Width; x++)
+                    if (PixelColors.Any(x => x.A == 0))
                     {
-                        Rgba32[] PixelColors = { Source[x, (y * 2)], Source[x, (y * 2) + 1] };
-
-                        if (PixelColors.Any(x => x.A == 0))
-                        {
-                            int TransparencySide = PixelColors.All(x => x.A == 0) ? 2 : ((PixelColors[0].A == 0) ? 0 : 1);
-                            Rgba32 ColoredPixel = PixelColors[(PixelColors[0].A == 0) ? 1 : 0];
-                            Line += new List<int> { 0, 1 }.Any(x => TransparencySide == x) ? $"\x1b[38;2;{ColoredPixel.R};{ColoredPixel.G};{ColoredPixel.B}m" : "\x1b[39m";
-                            Line += "\x1b[49m";
-                            Line += PixelColors.All(x => x.A == 0) ? EmptyBlockChar : ((PixelColors[0].A == 0) ? BottomBlockChar : TopBlockChar);
-                        }
-                        else
-                        {
-                            Line += $"\x1b[38;2;{PixelColors[0].R};{PixelColors[0].G};{PixelColors[0].B}m";
-                            Line += $"\x1b[48;2;{PixelColors[1].R};{PixelColors[1].G};{PixelColors[1].B}m";
-                            Line += TopBlockChar;
-                        }
+                        int TransparencySide = PixelColors.All(x => x.A == 0) ? 2 : ((PixelColors[0].A == 0) ? 0 : 1);
+                        Rgba32 ColoredPixel = PixelColors[(PixelColors[0].A == 0) ? 1 : 0];
+                        Line += new List<int> { 0, 1 }.Any(x => TransparencySide == x) ? $"\x1b[38;2;{ColoredPixel.R};{ColoredPixel.G};{ColoredPixel.B}m" : "\x1b[39m";
+                        Line += "\x1b[49m";
+                        Line += PixelColors.All(x => x.A == 0) ? EmptyBlockChar : ((PixelColors[0].A == 0) ? BottomBlockChar : TopBlockChar);
                     }
-                    Buffer += Line;
-                    Buffer += "\x1b[0m";
-                    Buffer += "\n";
+                    else
+                    {
+                        Line += $"\x1b[38;2;{PixelColors[0].R};{PixelColors[0].G};{PixelColors[0].B}m";
+                        Line += $"\x1b[48;2;{PixelColors[1].R};{PixelColors[1].G};{PixelColors[1].B}m";
+                        Line += TopBlockChar;
+                    }
                 }
+                Buffer += Line;
+                Buffer += "\x1b[0m";
+                Buffer += "\n";
+            }
 
-                Console.Write(Buffer);
-            }
-            else
-            {
-                Console.WriteLine("\x1b[31mError:\x1b[37m Can't open file!");
-                Environment.Exit(1);
-            }
+            Console.Write(Buffer);
+
+            Environment.Exit(0);
         }
     }
 }
