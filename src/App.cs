@@ -50,6 +50,13 @@ namespace TYM
 
         [Option('m', "resize-method", Required = false, Default = "Contain", HelpText = "Resizing mode. Available options: Contain, Cover (Crop), Stretch")]
         public string ResizeMethod { get; set; }
+
+
+
+
+        [Option('f', "fullscreen", Required = false, Default = false, HelpText = "Use fullscreen. This overrides margin and size arguments!")]
+        public bool UseFullscreen { get; set; }
+
     }
 
     public class App
@@ -74,11 +81,11 @@ namespace TYM
             }
 
             string? ImagePath = CommandLineOptions.FilePath;
-            if (Path.Exists(ImagePath)) // local image
+            if (Path.Exists(ImagePath))
             {
                 ProcessImageFile(CommandLineOptions, ImagePath);
             }
-            else // URI
+            else
             {
                 if (Uri.IsWellFormedUriString(ImagePath, UriKind.Absolute))
                 {
@@ -150,7 +157,8 @@ namespace TYM
                 {"Contain", ResizeMode.Max},
                 {"Cover", ResizeMode.Crop},
                 {"Crop", ResizeMode.Crop},
-                {"Stretch", ResizeMode.Stretch}
+                {"Stretch", ResizeMode.Stretch},
+                {"Center", ResizeMode.Pad}
             };
             if (!AvailableResizeModes.ContainsKey(CommandLineOptions.ResizeMethod))
             {
@@ -160,10 +168,15 @@ namespace TYM
             ResizeMode SelectedResizeMode = AvailableResizeModes.GetValueOrDefault(CommandLineOptions.ResizeMethod);
 
             Size TermSize = new(Console.BufferWidth, Console.BufferHeight);
-            Size TargetSize = new(
-                CommandLineOptions.Width < 1 ? TermSize.Width / 2 : CommandLineOptions.Width,
-                CommandLineOptions.Height < 1 ? TermSize.Height : CommandLineOptions.Height
-            );
+            Size TargetSize = CommandLineOptions.UseFullscreen 
+                ? new(
+                    TermSize.Width,
+                    TermSize.Height * 2
+                    )
+                : new(
+                    CommandLineOptions.Width < 1 ? TermSize.Width / 2 : CommandLineOptions.Width,
+                    CommandLineOptions.Height < 1 ? TermSize.Height : CommandLineOptions.Height
+                );
 
             Image<Rgba32> Source = Image.Load<Rgba32>(ImagePath);
             Source.Mutate(x => x.Resize(new ResizeOptions()

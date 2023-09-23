@@ -1,3 +1,12 @@
+"""
+TYM Python Port
+Created by Segilmez06
+
+This is only contains really small amount of capabilities compared to mainstream .Net source.
+This script will not be updated.
+"""
+
+
 from sys import argv, stdout
 from os import path, get_terminal_size
 from PIL import Image, ImageOps

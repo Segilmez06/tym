@@ -14,4 +14,4 @@
 - [x] Starting point on screen
 - [ ] ~~Disable true-color and use predefined VT100 colors option~~
 - [x] Resize method (fit, stretch, crop)
-- [ ] Full screen option
+- [x] Full screen option
