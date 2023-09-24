@@ -5,6 +5,7 @@
 - [x] Codebase
 - [x] Create release workflow (submit release on merge to main branch)
 - [x] Support for downloading and rendering files directly from network
+- [x] Disable AOT compiling
 
 ## CLI Args
 
