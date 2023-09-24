@@ -17,7 +17,7 @@ jobs:
         steps:
     
             - name: Fetch source code
-              uses: actions/checkout@3
+              uses: actions/checkout@v3
 
             - name: Install XML tools
               run: sudo apt install xmlstarlet
