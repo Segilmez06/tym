@@ -11,9 +11,6 @@ jobs:
         name: Draft new release
         runs-on: ubuntu-latest
 
-        outputs:
-            url: ${{ steps.draft.outputs.upload_url }}
-
         steps:
     
             - name: Fetch source code
@@ -37,9 +34,6 @@ jobs:
                 draft: true
                 prerelease: false
                 body_path: CHANGELOG.md
-
-            - name: Print upload url
-              run: echo "${{ steps.draft.outputs.upload_url }}"
 
 
     build-artifacts:
@@ -74,15 +68,13 @@ jobs:
             - name: Publish
               run:  dotnet publish src/TYM.csproj -a x64 --os ${{ matrix.target }} -c Release -p:PublishProfile=Properties/PublishProfiles/PublishConfig.pubxml
 
-            - name: Print upload url
-              run: echo "${{ needs.draft-release.outputs.upload_url }}"
-
-            - name: Upload release assets
-              uses: actions/upload-release-asset@v1
+            - run: |
+                gh api \
+                  --method POST \
+                  -H "Accept: application/vnd.github+json" \
+                  -H "X-GitHub-Api-Version: 2022-11-28" \
+                  --hostname HOSTNAME \
+                  /repos/${{github.repository}}/releases/${{steps.version.outputs.TAG}}/assets?name=TYM-${{ steps.version.outputs.TAG }}-${{ matrix.os }} \
+                  -f '@src/pub/${{ matrix.asset-path }}'
               env:
                 GITHUB_TOKEN: ${{ secrets.G_TOKEN }}
-              with:
-                upload_url: ${{ needs.draft-release.outputs.url }}
-                asset_name: TYM-${{ steps.version.outputs.TAG }}-${{ matrix.os }}
-                asset_path: src/pub/${{ matrix.asset-path }}
-                asset_content_type: application/octet-stream
