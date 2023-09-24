@@ -33,7 +33,49 @@ jobs:
                 GITHUB_TOKEN: ${{ secrets.G_TOKEN }}
               with:
                 tag_name: ${{ steps.project_version.outputs.TAG }}
-                release_name: TYM v${{ steps.project_version.outputs.TAG }}
+                name: TYM v${{ steps.project_version.outputs.TAG }}
                 draft: true
                 prerelease: false
-                body_path: CHANGELOG-LATEST.md
+                body_path: CHANGELOG.md
+
+    build-artifacts:
+        name: Build and upload release assets
+        runs-on: ${{ matrix.os }}
+        strategy:
+            matrix:
+                include:
+                    - os: windows-latest
+                      target: win
+                      asset-path: TYM.exe
+
+                    - os: ubuntu-latest
+                      target: linux
+                      asset-path: TYM
+
+                    - os: macos-latest
+                      target: osx
+                      asset-path: TYM
+
+        steps:
+            - uses: actions/checkout@v3
+
+            - name: Setup .NET Core
+              uses: actions/setup-dotnet@v3
+              with:
+                dotnet-version: '7.0.x'
+
+            - name: Build
+              run: dotnet build src/TYM.csproj
+
+            - name: Publish
+              run:  dotnet publish src/TYM.csproj -a x64 --os ${{ matrix.target }} -c Release -p:PublishProfile=Properties/PublishProfiles/PublishConfig.pubxml
+
+            - name: Upload release assets
+              uses: actions/upload-release-asset@v1
+              env:
+                GITHUB_TOKEN: ${{ secrets.G_TOKEN }}
+              with:
+                upload_url: ${{ needs.create_release.outputs.upload_url }}
+                asset_name: TYM-${{ steps.version.outputs.TAG }}-${{ matrix.os }}
+                asset_path: src/pub/${{ matrix.asset-path }}
+                asset_content_type: application/octet-stream
