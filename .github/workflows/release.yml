@@ -38,6 +38,7 @@ jobs:
                 prerelease: false
                 body_path: CHANGELOG.md
 
+
     build-artifacts:
         name: Build and upload release assets
         runs-on: ${{ matrix.os }}
@@ -75,7 +76,7 @@ jobs:
               env:
                 GITHUB_TOKEN: ${{ secrets.G_TOKEN }}
               with:
-                upload_url: ${{ needs.create_release.outputs.upload_url }}
+                upload_url: ${{ needs.draft_release.outputs.upload_url }}
                 asset_name: TYM-${{ steps.version.outputs.TAG }}-${{ matrix.os }}
                 asset_path: src/pub/${{ matrix.asset-path }}
                 asset_content_type: application/octet-stream
