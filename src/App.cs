@@ -49,7 +49,7 @@ namespace TYM
 
 
         [Option('m', "resize-method", Required = false, Default = "Contain", HelpText = "Resizing mode. Available options: Contain, Cover (Crop), Stretch")]
-        public string ResizeMethod { get; set; }
+        public string? ResizeMethod { get; set; }
 
 
 
@@ -89,8 +89,7 @@ namespace TYM
             {
                 if (Uri.IsWellFormedUriString(ImagePath, UriKind.Absolute))
                 {
-                    Uri WebURI;
-                    if (Uri.TryCreate(ImagePath, UriKind.Absolute, out WebURI))
+                    if (Uri.TryCreate(ImagePath, UriKind.Absolute, out Uri? WebURI))
                     {
                         if (WebURI.Scheme == Uri.UriSchemeHttps)
                         {
@@ -102,6 +101,7 @@ namespace TYM
 
                             string TempFile = Path.Combine(DownloadDirectory, Guid.NewGuid().ToString());
                             byte[] Data = Client.DownloadData(WebURI.ToString());
+                            string ResponseHeader = $"{Client.ResponseHeaders["Content-Type"]}";
                             bool IsMimeValid = new List<string>() {
                                 "image/jpeg",
                                 "image/bmp",
@@ -109,7 +109,7 @@ namespace TYM
                                 "image/png",
                                 "image/tiff",
                                 "image/webp"
-                            }.Any(x => Client.ResponseHeaders["Content-Type"].Contains(x));
+                            }.Any(x => ResponseHeader.Contains(x));
                             if (IsMimeValid)
                             {
                                 File.WriteAllBytes(TempFile, Data);
@@ -138,7 +138,7 @@ namespace TYM
             }
         }
 
-        private void ProcessImageFile(Options CommandLineOptions, string ImagePath)
+        private static void ProcessImageFile(Options CommandLineOptions, string ImagePath)
         {
             PropertyInfo? ResamplerProperty = typeof(KnownResamplers).GetProperty(CommandLineOptions.ResamplerName);
             if (ResamplerProperty == null)
@@ -146,7 +146,7 @@ namespace TYM
                 Console.WriteLine("\x1b[31mError:\x1b[37m Invalid resampler specified.\x1b[39m");
                 Environment.Exit(1);
             }
-            IResampler Resampler = (IResampler)ResamplerProperty.GetValue(typeof(KnownResamplers));
+            IResampler? Resampler = (IResampler)ResamplerProperty.GetValue(typeof(KnownResamplers));
             if (Resampler == null)
             {
                 Console.WriteLine("\x1b[31mError:\x1b[37m Error occured while fetching resampler.\x1b[39m");

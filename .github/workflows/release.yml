@@ -1,97 +1,38 @@
-#name: Build and draft release
+name: Release
 
-#on:
-#  push:
-#    branches:
-#      - main
+on:
+    push:
+        branches:
+            - main
+            - dev
 
-#jobs:
-  
-#  draft-release:
-#    name: Draft new release
-#    runs-on: ubuntu-latest
+jobs:
+    draft-release:
+        name: Draft new release
+        runs-on: ubuntu-latest
+
+        outputs:
+            upload_url: ${{ steps.draft_release.outputs.upload_url }}
+
+        steps:
     
-#    outputs:
-#      upload_url: ${{ steps.draft_release.outputs.upload_url }}
+            - name: Fetch source code
+              uses: actions/checkout@3
 
-#    steps:
-#      - name: Fetch source code
-#        uses: actions/checkout@v3
+            - name: Install XML tools
+              run: sudo apt install xmlstarlet
+              
+            - name: Fetch version string
+              run: echo "TAG=$(xmlstarlet select --template --value-of /Project/PropertyGroup/AssemblyVersion ./src/TYM.csproj)" >> $GITHUB_OUTPUT
+              id: project_version
 
-#      - name: Install XML tools
-#        run: sudo apt install xmlstarlet
-
-#      - name: Fetch version string
-#        run: echo "TAG=$(xmlstarlet select --template --value-of /Project/PropertyGroup/AssemblyVersion ./src/TYM.csproj)" >> $GITHUB_OUTPUT
-#        id: version
-
-#      - name: Draft release
-#        uses: actions/create-release@v1
-#        id: draft_release
-#        env:
-#          GITHUB_TOKEN: ${{ secrets.G_TOKEN }}
-#        with:
-#          tag_name: ${{ steps.version.outputs.TAG }}
-#          release_name: TYM v${{ steps.version.outputs.TAG }}
-#          draft: true
-#          prerelease: false
-
-
-#  release-assets:
-#    name: Build and upload release assets
-#    runs-on: ${{ matrix.os }}
-
-#    strategy:
-#      matrix:
-#        os: [windows-latest, ubuntu-latest, macos-latest]
-
-#    steps:
-#      - name: Fetch source code
-#        uses: actions/checkout@v3
-
-#      - name: Setup .NET Core
-#        uses: actions/setup-dotnet@v3
-#        with:
-#          dotnet-version: '7.0.x'
-
-#      - name: Fetch version string (win)
-#        run: echo "TAG=$(./src/pub/TYM.exe --version | cut -c5- )" >> $GITHUB_OUTPUT
-#        id: version
-#        shell: bash
-#        if: matrix.os == 'windows-latest'
-
-#      - name: Fetch version string (*nix)
-#        run: echo "TAG=$(./src/pub/TYM --version  | cut -c5- )" >> $GITHUB_OUTPUT
-#        id: version
-#        shell: bash
-#        if: 
-#          matrix.os == 'macos-latest'
-#          matrix.os == 'ubuntu-latest'
-
-#      - name: Build
-#        run: dotnet build src/TYM.csproj
-
-#      - name: Publish
-#        run: dotnet publish src/TYM.csproj /p:PublishProfile=src/Properties/PublishProfiles/${{ matrix.os }}.pubxml
-
-#      - name: Upload release assets (win)
-#        uses: actions/upload-release-asset@v1
-#        env:
-#          GITHUB_TOKEN: ${{ secrets.G_TOKEN }}
-#        with:
-#          upload_url: ${{ needs.create_release.outputs.upload_url }}
-#          asset_name: TYM-${{ steps.version.outputs.TAG }}-${{ matrix.os }}
-#          asset_path: ./src/pub/TYM.exe
-#          asset_content_type: application/octet-stream
-#        if: matrix.os == 'windows-latest'
-
-#      - name: Upload release assets (*nix)
-#        uses: actions/upload-release-asset@v1
-#        env:
-#          GITHUB_TOKEN: ${{ secrets.G_TOKEN }}
-#        with:
-#          upload_url: ${{ needs.create_release.outputs.upload_url }}
-#          asset_name: TYM-${{ steps.version.outputs.TAG }}-${{ matrix.os }}
-#          asset_path: ./src/pub/TYM
-#          asset_content_type: application/octet-stream
-#        if: matrix.os == 'windows-latest'
+            - name: Draft release
+              uses: actions/create-release@v1
+              id: draft_release
+              env:
+                GITHUB_TOKEN: ${{ secrets.G_TOKEN }}
+              with:
+                tag_name: ${{ steps.project_version.outputs.TAG }}
+                release_name: TYM v${{ steps.project_version.outputs.TAG }}
+                draft: true
+                prerelease: false
