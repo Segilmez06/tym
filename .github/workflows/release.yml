@@ -12,7 +12,7 @@ jobs:
         runs-on: ubuntu-latest
 
         outputs:
-            upload_url: ${{ steps.draft_release.outputs.upload_url }}
+            url: ${{ steps.draft.outputs.upload_url }}
 
         steps:
     
@@ -28,7 +28,7 @@ jobs:
 
             - name: Draft release
               uses: softprops/action-gh-release@v1
-              id: draft_release
+              id: draft
               env:
                 GITHUB_TOKEN: ${{ secrets.G_TOKEN }}
               with:
@@ -37,6 +37,9 @@ jobs:
                 draft: true
                 prerelease: false
                 body_path: CHANGELOG.md
+
+            - name: Print upload url
+              run: echo "${{ steps.draft.outputs.upload_url }}"
 
 
     build-artifacts:
@@ -79,7 +82,7 @@ jobs:
               env:
                 GITHUB_TOKEN: ${{ secrets.G_TOKEN }}
               with:
-                upload_url: ${{ needs.draft-release.outputs.upload_url }}
+                upload_url: ${{ needs.draft-release.outputs.url }}
                 asset_name: TYM-${{ steps.version.outputs.TAG }}-${{ matrix.os }}
                 asset_path: src/pub/${{ matrix.asset-path }}
                 asset_content_type: application/octet-stream
