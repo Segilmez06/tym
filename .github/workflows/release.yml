@@ -74,7 +74,6 @@ jobs:
               run: src/pub/${{ matrix.asset-path }} --version | cut -c 5- | (key="TAG"; read value; echo "$key=$value" >> "$GITHUB_ENV")
             #   run: echo "TAG=$(./src/pub/${{ matrix.asset-path }} --version | cut -c5- )" >> $GITHUB_ENV
               id: build_version
-              shell: bash
 
             - run: printf '%s\n' "$TAG"
 
