@@ -78,8 +78,8 @@ jobs:
             - name: Rename output files
               run: mv src/pub/${{ matrix.asset-path }} TYM-${{ steps.build_version.outputs.TAG }}-${{ matrix.os }}
 
-            - name: Authorize Github CLI
-              run: gh auth token ${{ secrets.G_TOKEN }}
+            #- name: Authorize Github CLI
+            #  run: gh auth token ${{ secrets.G_TOKEN }}
 
             - name: Upload artifact
               run: gh release upload ${{ steps.build_version.outputs.TAG }} TYM-${{ steps.build_version.outputs.TAG }}-${{ matrix.os }}
