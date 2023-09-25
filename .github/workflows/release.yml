@@ -4,7 +4,6 @@ on:
     push:
         branches:
             - main
-            - dev
 
 jobs:
     draft_release:
@@ -48,15 +47,15 @@ jobs:
                 include:
                     - os: windows-latest
                       target: win
-                      asset-path: TYM.exe
+                      bin-extension: ".exe"
 
                     - os: ubuntu-latest
                       target: linux
-                      asset-path: TYM
+                      bin-extension: ""
 
                     - os: macos-latest
                       target: osx
-                      asset-path: TYM
+                      bin-extension: ""
 
         steps:
             
@@ -75,13 +74,13 @@ jobs:
               run:  dotnet publish src/TYM.csproj -a x64 --os ${{ matrix.target }} -c Release -p:PublishProfile=Properties/PublishProfiles/PublishConfig.pubxml
 
             - name: Rename output files
-              run: mv src/pub/${{ matrix.asset-path }} TYM-${{ needs.draft_release.outputs.release_tag }}-${{ matrix.os }}
+              run: mv src/pub/TYM${{ matrix.bin-extension }} TYM-${{ needs.draft_release.outputs.release_tag }}-${{ matrix.os }}-bin${{ matrix.bin-extension }}
 
             #- name: Authorize Github CLI
             #  run: gh auth token ${{ secrets.G_TOKEN }}
 
             - name: Upload artifact
-              run: gh release upload ${{ needs.draft_release.outputs.release_tag }} TYM-${{ needs.draft_release.outputs.release_tag }}-${{ matrix.os }}
+              run: gh release upload ${{ needs.draft_release.outputs.release_tag }} TYM-${{ needs.draft_release.outputs.release_tag }}-${{ matrix.os }}-bin${{ matrix.bin-extension }}
               env:
                 GH_TOKEN: ${{ secrets.G_TOKEN }}
 
