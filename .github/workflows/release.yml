@@ -30,7 +30,7 @@ jobs:
               uses: softprops/action-gh-release@v1
               id: draft
               env:
-                GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                GITHUB_TOKEN: ${{ secrets.G_TOKEN }}
               with:
                 tag_name: ${{ steps.project_version.outputs.TAG }}
                 name: TYM v${{ steps.project_version.outputs.TAG }}
