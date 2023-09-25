@@ -75,6 +75,8 @@ jobs:
               id: build_version
               shell: bash
 
+            - run: cat $GITHUB_OUTPUT
+
             - name: Rename output files
               run: mv src/pub/${{ matrix.asset-path }} TYM-${{ steps.build_version.outputs.TAG }}-${{ matrix.os }}
 
