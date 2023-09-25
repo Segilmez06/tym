@@ -2,7 +2,6 @@
 
 using SixLabors.ImageSharp.Processing.Processors.Transforms;
 
-using System.Linq;
 using System.Net;
 using System.Reflection;
 
@@ -102,22 +101,18 @@ namespace TYM
                             string TempFile = Path.Combine(DownloadDirectory, Guid.NewGuid().ToString());
                             byte[] Data = Client.DownloadData(WebURI.ToString());
                             string ResponseHeader = $"{Client.ResponseHeaders["Content-Type"]}";
-                            bool IsMimeValid = new List<string>() {
-                                "image/jpeg",
-                                "image/bmp",
-                                "image/gif",
-                                "image/png",
-                                "image/tiff",
-                                "image/webp"
-                            }.Any(x => ResponseHeader.Contains(x));
-                            if (IsMimeValid)
+
+                            List<string> SupportedMimeTypes = "jpeg;bmp;gif;png;tiff;webp".Split(';').ToList();
+                            SupportedMimeTypes.ForEach(x => x = $"image/{x}");
+
+                            if (SupportedMimeTypes.Any(ResponseHeader.Contains))
                             {
                                 File.WriteAllBytes(TempFile, Data);
                                 ProcessImageFile(CommandLineOptions, TempFile);
                             }
                             else
                             {
-                                Console.WriteLine($"\x1b[31mError:\x1b[37m Server returned invalid mime type \"{Client.ResponseHeaders["Content-Type"]}\"!");
+                                Console.WriteLine($"\x1b[31mError:\x1b[37m Server returned invalid mime type \"{Client.ResponseHeaders["Content-Type"].Split(';')[0]}\"!");
                                 Environment.Exit(1);
                             }
                         }

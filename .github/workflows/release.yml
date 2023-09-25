@@ -4,7 +4,6 @@ on:
     push:
         branches:
             - main
-            - dev
 
 jobs:
     draft_release:
@@ -76,9 +75,9 @@ jobs:
               run:  dotnet publish src/TYM.csproj -a x64 --os ${{ matrix.target }} -c Release -p:PublishProfile=Properties/PublishProfiles/PublishConfig.pubxml
 
             - name: Rename output files
-              run: mv src/pub/TYM${{ matrix.bin-extension }} TYM-${{ needs.draft_release.outputs.release_tag }}-${{ matrix.os }}-bin${{ matrix.bin-extension }}
+              run: mv src/pub/TYM${{ matrix.bin-extension }} TYM-${{ needs.draft_release.outputs.release_tag }}-${{ matrix.target }}-bin${{ matrix.bin-extension }}
 
             - name: Upload artifact
-              run: gh release upload ${{ needs.draft_release.outputs.release_tag }} TYM-${{ needs.draft_release.outputs.release_tag }}-${{ matrix.os }}-bin${{ matrix.bin-extension }}
+              run: gh release upload ${{ needs.draft_release.outputs.release_tag }} TYM-${{ needs.draft_release.outputs.release_tag }}-${{ matrix.target }}-bin${{ matrix.bin-extension }}
               env:
                 GH_TOKEN: ${{ secrets.G_TOKEN }}
