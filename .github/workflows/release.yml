@@ -71,11 +71,11 @@ jobs:
               run:  dotnet publish src/TYM.csproj -a x64 --os ${{ matrix.target }} -c Release -p:PublishProfile=Properties/PublishProfiles/PublishConfig.pubxml
 
             - name: Fetch version string
-              run: echo "TAG=$(./src/pub/${{ matrix.asset-path }} --version | cut -c5- )" >> $GITHUB_OUTPUT
+              run: echo "TAG=$(./src/pub/${{ matrix.asset-path }} --version | cut -c5- )" >> $GITHUB_ENV
               id: build_version
               shell: bash
 
-            - run: cat $GITHUB_OUTPUT
+            - run: printf '%s\n' "$TAG"
 
             - name: Rename output files
               run: mv src/pub/${{ matrix.asset-path }} TYM-${{ steps.build_version.outputs.TAG }}-${{ matrix.os }}
