@@ -32,11 +32,8 @@ jobs:
             - name: Build
               run: dotnet build src/TYM.csproj
 
-            - name: Publish
-              run:  dotnet publish src/TYM.csproj -a x64 --os ${{ matrix.target }} -c Debug -p:PublishProfile=Properties/PublishProfiles/PublishConfig.pubxml
-
             - name: Upload artifacts
               uses: actions/upload-artifact@v3
               with:
                 name: debug-${{ matrix.os }}
-                path: src/pub/
+                path: src/bin/
