@@ -74,10 +74,6 @@ jobs:
             - name: Publish
               run:  dotnet publish src/TYM.csproj -a x64 --os ${{ matrix.target }} -c Release -p:PublishProfile=Properties/PublishProfiles/PublishConfig.pubxml
 
-            - run: printf '%s\n' "$TAG"
-              env:
-                TAG: ${{ needs.draft_release.outputs.release_tag }}
-
             - name: Rename output files
               run: mv src/pub/${{ matrix.asset-path }} TYM-${{ needs.draft_release.outputs.release_tag }}-${{ matrix.os }}
 
@@ -86,6 +82,8 @@ jobs:
 
             - name: Upload artifact
               run: gh release upload ${{ needs.draft_release.outputs.release_tag }} TYM-${{ needs.draft_release.outputs.release_tag }}-${{ matrix.os }}
+              env:
+                GH_TOKEN: ${{ secrets.G_TOKEN }}
 
             #- name: Upload artifact
             #  run: |
