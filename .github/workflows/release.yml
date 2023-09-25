@@ -7,9 +7,12 @@ on:
             - dev
 
 jobs:
-    draft-release:
+    draft_release:
         name: Draft new release
         runs-on: ubuntu-latest
+
+        outputs:
+            release_tag: ${{ steps.project_version.outputs.TAG }}
 
         steps:
     
@@ -27,7 +30,7 @@ jobs:
               uses: softprops/action-gh-release@v1
               id: draft
               env:
-                GITHUB_TOKEN: ${{ secrets.G_TOKEN }}
+                GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
               with:
                 tag_name: ${{ steps.project_version.outputs.TAG }}
                 name: TYM v${{ steps.project_version.outputs.TAG }}
@@ -36,7 +39,7 @@ jobs:
                 body_path: CHANGELOG.md
 
 
-    build-artifacts:
+    build_artifacts:
         name: Build release assets
         runs-on: ${{ matrix.os }}
         strategy:
@@ -70,21 +73,18 @@ jobs:
             - name: Publish
               run:  dotnet publish src/TYM.csproj -a x64 --os ${{ matrix.target }} -c Release -p:PublishProfile=Properties/PublishProfiles/PublishConfig.pubxml
 
-            - name: Fetch version string
-              run: src/pub/${{ matrix.asset-path }} --version | cut -c 5- | (key="TAG"; read value; echo "$key=$value" >> "$GITHUB_ENV")
-            #   run: echo "TAG=$(./src/pub/${{ matrix.asset-path }} --version | cut -c5- )" >> $GITHUB_ENV
-              id: build_version
-
             - run: printf '%s\n' "$TAG"
+              env:
+                TAG: ${{ needs.draft_release.outputs.release_tag }}
 
             - name: Rename output files
-              run: mv src/pub/${{ matrix.asset-path }} TYM-${{ steps.build_version.outputs.TAG }}-${{ matrix.os }}
+              run: mv src/pub/${{ matrix.asset-path }} TYM-${{ needs.draft_release.outputs.release_tag }}-${{ matrix.os }}
 
             #- name: Authorize Github CLI
             #  run: gh auth token ${{ secrets.G_TOKEN }}
 
             - name: Upload artifact
-              run: gh release upload ${{ steps.build_version.outputs.TAG }} TYM-${{ steps.build_version.outputs.TAG }}-${{ matrix.os }}
+              run: gh release upload ${{ needs.draft_release.outputs.release_tag }} TYM-${{ needs.draft_release.outputs.release_tag }}-${{ matrix.os }}
 
             #- name: Upload artifact
             #  run: |
