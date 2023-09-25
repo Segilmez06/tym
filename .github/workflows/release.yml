@@ -42,6 +42,7 @@ jobs:
     build_artifacts:
         name: Build release assets
         runs-on: ${{ matrix.os }}
+        needs: draft_release
         strategy:
             matrix:
                 include:
