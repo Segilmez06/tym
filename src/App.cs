@@ -2,7 +2,7 @@
 
 using SixLabors.ImageSharp.Processing.Processors.Transforms;
 
-using System.Net;
+using System.Net.Http.Headers;
 using System.Reflection;
 
 using static TYM.BlockChars;
@@ -92,27 +92,40 @@ namespace TYM
                     {
                         if (WebURI.Scheme == Uri.UriSchemeHttps)
                         {
-                            WebClient Client = new();
-                            Client.Headers.Add("Accept", "image/*");
+                            HttpClient Client = new();
 
-                            string DownloadDirectory = Path.Combine(Path.GetTempPath(), "TYM-Web-Downloads");
-                            Directory.CreateDirectory(DownloadDirectory);
+                            List<string> SupportedMimeTypes = ("jpeg;bmp;gif;png;tiff;webp").Split(';').ToList();
+                            SupportedMimeTypes.ForEach(x => Client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue($"image/{x}")));
 
-                            string TempFile = Path.Combine(DownloadDirectory, Guid.NewGuid().ToString());
-                            byte[] Data = Client.DownloadData(WebURI.ToString());
-                            string ResponseHeader = $"{Client.ResponseHeaders["Content-Type"]}";
+                            Task<HttpResponseMessage> GetTask = Client.GetAsync(WebURI);
+                            GetTask.Wait();
+                            HttpResponseMessage Response = GetTask.Result;
 
-                            List<string> SupportedMimeTypes = "jpeg;bmp;gif;png;tiff;webp".Split(';').ToList();
-                            SupportedMimeTypes.ForEach(x => x = $"image/{x}");
-
-                            if (SupportedMimeTypes.Any(ResponseHeader.Contains))
+                            if (Response.IsSuccessStatusCode)
                             {
-                                File.WriteAllBytes(TempFile, Data);
-                                ProcessImageFile(CommandLineOptions, TempFile);
+                                string DownloadDirectory = Path.Combine(Path.GetTempPath(), "TYM-Web-Downloads");
+                                Directory.CreateDirectory(DownloadDirectory);
+
+                                string TempFile = Path.Combine(DownloadDirectory, Guid.NewGuid().ToString());
+
+                                Task<byte[]> ReadTask = Response.Content.ReadAsByteArrayAsync();
+                                ReadTask.Wait();
+                                byte[] Data = ReadTask.Result;
+
+                                if (SupportedMimeTypes.Any(x => $"image/{x}" == Response.Content.Headers.ContentType.MediaType))
+                                {
+                                    File.WriteAllBytes(TempFile, Data);
+                                    ProcessImageFile(CommandLineOptions, TempFile);
+                                }
+                                else
+                                {
+                                    Console.WriteLine($"\x1b[31mError:\x1b[37m Server returned invalid mime type \"{Response.Content.Headers.ContentType.MediaType}\"!");
+                                    Environment.Exit(1);
+                                }
                             }
                             else
                             {
-                                Console.WriteLine($"\x1b[31mError:\x1b[37m Server returned invalid mime type \"{Client.ResponseHeaders["Content-Type"].Split(';')[0]}\"!");
+                                Console.WriteLine($"\x1b[31mError:\x1b[37m Server returned code {Response.StatusCode}!");
                                 Environment.Exit(1);
                             }
                         }
