@@ -7,3 +7,4 @@
 - [ ] Move settings to embedded resource
 - [ ] Move message and error strings to embedded resource
 - [x] Optimize web requests
+- [x] Create console logging utility
