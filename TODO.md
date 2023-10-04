@@ -4,7 +4,12 @@
 
 - [ ] Optimize code and fragment info methods
 - [x] Fix workflows (publishing)
-- [ ] Move settings to embedded resource
-- [ ] Move message and error strings to embedded resource
+- [x] Move settings to embedded resource
+- [ ] Localization
 - [x] Optimize web requests
 - [x] Create console logging utility
+- [ ] Add web link caching with hash checking
+
+## CLI Args
+
+- [ ] Clear web download cache

@@ -1,10 +1,12 @@
 ﻿using CommandLine;
-
+using Newtonsoft.Json;
 using SixLabors.ImageSharp.Processing.Processors.Transforms;
 
+using System.Globalization;
 using System.Net.Http.Headers;
 using System.Reflection;
 
+using TYM.Properties;
 using static TYM.BlockChars;
 using static TYM.Logger;
 
@@ -77,9 +79,9 @@ namespace TYM
 
         private static readonly Dictionary<LogLevel, string> LevelPrefix= new()
         {
-            { LogLevel.Info, "INFO" },
-            { LogLevel.Warn, "WARNING" },
-            { LogLevel.Error, "ERROR" }
+            { LogLevel.Info, Messages.LogCategory_Info },
+            { LogLevel.Warn, Messages.LogCategory_Warning },
+            { LogLevel.Error, Messages.LogCategory_Error }
         };
 
         private static readonly Dictionary<LogLevel, int> LevelExitCodes = new()
@@ -99,6 +101,18 @@ namespace TYM
             LogMsg(Level, Message);
             Environment.Exit(LevelExitCodes[Level]);
         }
+
+        public static void LogExit(LogLevel Level, string Message, string Argument)
+        {
+            LogMsg(Level, Message.Replace("%s", Argument));
+            Environment.Exit(LevelExitCodes[Level]);
+        }
+
+        public static void LogExit(LogLevel Level, string Message, int Argument)
+        {
+            LogMsg(Level, Message.Replace("%s", Argument.ToString()));
+            Environment.Exit(LevelExitCodes[Level]);
+        }
     }
 
     public class App
@@ -112,6 +126,12 @@ namespace TYM
 
         private void Run(Options CommandLineOptions)
         {
+            Assembly ExecutingAssembly = Assembly.GetExecutingAssembly();
+            Stream SettingsStream = ExecutingAssembly.GetManifestResourceStream("TYM.settings.json");
+            string SettingsContent = new StreamReader(SettingsStream).ReadToEnd();
+
+            dynamic Settings = JsonConvert.DeserializeObject<dynamic>(SettingsContent);
+
             if (CommandLineOptions.ListResamplers)
             {
                 Console.WriteLine("\u001b[32mAvailable resampling algorithms:");
@@ -135,8 +155,8 @@ namespace TYM
                     {
                         HttpClient Client = new();
 
-                        List<string> SupportedMimeTypes = ("jpeg;bmp;gif;png;tiff;webp").Split(';').ToList();
-                        SupportedMimeTypes.ForEach(x => Client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue($"image/{x}")));
+                        List<string> SupportedMimeTypes = ((string[])Settings["supportedImageFormats"]).ToList();
+                        SupportedMimeTypes.ForEach(x => Client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue(x)));
 
                         Task<HttpResponseMessage> GetTask = Client.GetAsync(WebURI);
                         GetTask.Wait();
@@ -144,43 +164,45 @@ namespace TYM
 
                         if (Response.IsSuccessStatusCode)
                         {
-                            string DownloadDirectory = Path.Combine(Path.GetTempPath(), "TYM-Web-Downloads");
-                            Directory.CreateDirectory(DownloadDirectory);
+                            string ResponseMimeType = Response.Content.Headers.ContentType.MediaType;
 
-                            string TempFile = Path.Combine(DownloadDirectory, Guid.NewGuid().ToString());
-
-                            Task<byte[]> ReadTask = Response.Content.ReadAsByteArrayAsync();
-                            ReadTask.Wait();
-                            byte[] Data = ReadTask.Result;
-
-                            if (SupportedMimeTypes.Any(x => $"image/{x}" == Response.Content.Headers.ContentType.MediaType))
+                            if (SupportedMimeTypes.Any(x => x == ResponseMimeType))
                             {
+                                string DownloadDirectory = Path.Combine(Path.GetTempPath(), (string)Settings["tempDirectoryName"]);
+                                Directory.CreateDirectory(DownloadDirectory);
+
+                                string TempFile = Path.Combine(DownloadDirectory, Guid.NewGuid().ToString());
+
+                                Task<byte[]> ReadTask = Response.Content.ReadAsByteArrayAsync();
+                                ReadTask.Wait();
+                                byte[] Data = ReadTask.Result;
+
                                 File.WriteAllBytes(TempFile, Data);
                                 ProcessImageFile(CommandLineOptions, TempFile);
                             }
                             else
                             {
-                                LogExit(LogLevel.Error, $"Server returned invalid mime type \"{Response.Content.Headers.ContentType.MediaType}\"!");
+                                LogExit(LogLevel.Error, Messages.Error_InvalidMimeType, ResponseMimeType);
                             }
                         }
                         else
                         {
-                            LogExit(LogLevel.Error, $"Server returned code {Response.StatusCode}!");
+                            LogExit(LogLevel.Error, Messages.Error_ResponseCode, (int)Response.StatusCode);
                         }
                     }
                     else
                     {
-                        LogExit(LogLevel.Error, $"Only HTTPS scheme supported!");
+                        LogExit(LogLevel.Error, Messages.Error_UnsupportedProtocol);
                     }
                 }
                 else
                 {
-                    LogExit(LogLevel.Error, $"Can't parse URL!");
+                    LogExit(LogLevel.Error, Messages.Error_URLParseError);
                 }
             }
             else
             {
-                LogExit(LogLevel.Error, $"Can't open file!");
+                LogExit(LogLevel.Error, Messages.Error_FileError);
             }
         }
 
@@ -189,12 +211,12 @@ namespace TYM
             PropertyInfo? ResamplerProperty = typeof(KnownResamplers).GetProperty(CommandLineOptions.ResamplerName);
             if (ResamplerProperty == null)
             {
-                LogExit(LogLevel.Error, "Invalid resampler specified.");
+                LogExit(LogLevel.Error, Messages.Error_InvalidResampler);
             }
             IResampler? Resampler = (IResampler)ResamplerProperty.GetValue(typeof(KnownResamplers));
             if (Resampler == null)
             {
-                LogExit(LogLevel.Error, "Failed to fetch resampler.");
+                LogExit(LogLevel.Error, Messages.Error_ResamplerError);
             }
 
             Dictionary<string, ResizeMode> AvailableResizeModes = new(){
@@ -206,7 +228,7 @@ namespace TYM
             };
             if (!AvailableResizeModes.ContainsKey(CommandLineOptions.ResizeMethod))
             {
-                LogExit(LogLevel.Error, "Invalid resize mode specified.");
+                LogExit(LogLevel.Error, Messages.Error_InvalidResizeMode);
             }
             ResizeMode SelectedResizeMode = AvailableResizeModes.GetValueOrDefault(CommandLineOptions.ResizeMethod);
 
