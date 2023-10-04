@@ -59,6 +59,10 @@ namespace TYM
         [Option('f', "fullscreen", Required = false, Default = false, HelpText = "Use fullscreen. This overrides margin and size arguments!")]
         public bool UseFullscreen { get; set; }
 
+
+
+        [Option('c', "clear", Required = false, Default = false, HelpText = "Clear downloaded cache folder.")]
+        public bool ClearCache { get; set; }
     }
 
     public static class Logger
@@ -142,6 +146,12 @@ namespace TYM
                 Environment.Exit(0);
             }
 
+            string DownloadDirectory = Path.Combine(Path.GetTempPath(), (string)Settings["tempDirectoryName"]);
+            if (CommandLineOptions.ClearCache)
+            {
+                Directory.Delete(DownloadDirectory, true);
+            }
+
             string? ImagePath = CommandLineOptions.FilePath;
             if (Path.Exists(ImagePath))
             {
@@ -168,7 +178,6 @@ namespace TYM
 
                             if (SupportedMimeTypes.Any(x => x == ResponseMimeType))
                             {
-                                string DownloadDirectory = Path.Combine(Path.GetTempPath(), (string)Settings["tempDirectoryName"]);
                                 Directory.CreateDirectory(DownloadDirectory);
 
                                 string TempFile = Path.Combine(DownloadDirectory, Guid.NewGuid().ToString());
