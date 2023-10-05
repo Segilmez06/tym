@@ -2,15 +2,12 @@
 
 ## General
 
-- [x] Codebase
-- [x] Create release workflow (submit release on merge to main branch)
-- [x] Support for downloading and rendering files directly from network
-- [x] Disable AOT compiling
+- [x] Optimize code and fragment info methods
+- [x] Fix workflows (publishing)
+- [x] Move settings to embedded resource
+- [x] Optimize web requests
+- [x] Create console logging utility
 
 ## CLI Args
 
-- [x] Resampler list and selection
-- [x] Size option
-- [x] Starting point on screen
-- [x] Resize method (fit, stretch, crop)
-- [x] Full screen option
+- [x] Clear web download cache

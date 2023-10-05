@@ -2,7 +2,6 @@
 using Newtonsoft.Json;
 using SixLabors.ImageSharp.Processing.Processors.Transforms;
 
-using System.Globalization;
 using System.Net.Http.Headers;
 using System.Reflection;
 
