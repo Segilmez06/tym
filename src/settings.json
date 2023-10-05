@@ -1,0 +1,11 @@
+﻿{
+    "supportedImageFormats": [
+        "image/jpeg",
+        "image/bmp",
+        "image/gif",
+        "image/png",
+        "image/tiff",
+        "image/webp"
+    ],
+    "tempDirectoryName": "TYMwebfetch"
+}

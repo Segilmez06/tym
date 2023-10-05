@@ -1,12 +1,13 @@
 ﻿using CommandLine;
-
+using Newtonsoft.Json;
 using SixLabors.ImageSharp.Processing.Processors.Transforms;
 
-using System.Linq;
-using System.Net;
+using System.Net.Http.Headers;
 using System.Reflection;
 
+using TYM.Properties;
 using static TYM.BlockChars;
+using static TYM.Logger;
 
 namespace TYM
 {
@@ -49,7 +50,7 @@ namespace TYM
 
 
         [Option('m', "resize-method", Required = false, Default = "Contain", HelpText = "Resizing mode. Available options: Contain, Cover (Crop), Stretch")]
-        public string ResizeMethod { get; set; }
+        public string? ResizeMethod { get; set; }
 
 
 
@@ -57,6 +58,64 @@ namespace TYM
         [Option('f', "fullscreen", Required = false, Default = false, HelpText = "Use fullscreen. This overrides margin and size arguments!")]
         public bool UseFullscreen { get; set; }
 
+
+
+        [Option('c', "clear", Required = false, Default = false, HelpText = "Clear downloaded cache folder.")]
+        public bool ClearCache { get; set; }
+    }
+
+    public static class Logger
+    {
+        public enum LogLevel
+        {
+            Info,
+            Warn,
+            Error
+        }
+
+        private static readonly Dictionary<LogLevel, int> LevelColors = new()
+        {
+            { LogLevel.Info, 4 }, // Blue
+            { LogLevel.Warn, 3 }, // Yellow
+            { LogLevel.Error, 1 } // Red
+        };
+
+        private static readonly Dictionary<LogLevel, string> LevelPrefix= new()
+        {
+            { LogLevel.Info, Messages.LogCategory_Info },
+            { LogLevel.Warn, Messages.LogCategory_Warning },
+            { LogLevel.Error, Messages.LogCategory_Error }
+        };
+
+        private static readonly Dictionary<LogLevel, int> LevelExitCodes = new()
+        {
+            { LogLevel.Info, 0 },
+            { LogLevel.Warn, 0 },
+            { LogLevel.Error, 1 }
+        };
+
+        public static void LogMsg(LogLevel Level, string Message)
+        {
+            Console.WriteLine($"\u001b[3{LevelColors[Level]}m{LevelPrefix[Level]}:\u001b[37m {Message}\u001b[39m");
+        }
+
+        public static void LogExit(LogLevel Level, string Message)
+        {
+            LogMsg(Level, Message);
+            Environment.Exit(LevelExitCodes[Level]);
+        }
+
+        public static void LogExit(LogLevel Level, string Message, string Argument)
+        {
+            LogMsg(Level, Message.Replace("%s", Argument));
+            Environment.Exit(LevelExitCodes[Level]);
+        }
+
+        public static void LogExit(LogLevel Level, string Message, int Argument)
+        {
+            LogMsg(Level, Message.Replace("%s", Argument.ToString()));
+            Environment.Exit(LevelExitCodes[Level]);
+        }
     }
 
     public class App
@@ -70,6 +129,12 @@ namespace TYM
 
         private void Run(Options CommandLineOptions)
         {
+            Assembly ExecutingAssembly = Assembly.GetExecutingAssembly();
+            Stream SettingsStream = ExecutingAssembly.GetManifestResourceStream("TYM.settings.json");
+            string SettingsContent = new StreamReader(SettingsStream).ReadToEnd();
+
+            dynamic Settings = JsonConvert.DeserializeObject<dynamic>(SettingsContent);
+
             if (CommandLineOptions.ListResamplers)
             {
                 Console.WriteLine("\u001b[32mAvailable resampling algorithms:");
@@ -80,77 +145,86 @@ namespace TYM
                 Environment.Exit(0);
             }
 
+            string DownloadDirectory = Path.Combine(Path.GetTempPath(), (string)Settings["tempDirectoryName"]);
+            if (CommandLineOptions.ClearCache)
+            {
+                Directory.Delete(DownloadDirectory, true);
+            }
+
             string? ImagePath = CommandLineOptions.FilePath;
             if (Path.Exists(ImagePath))
             {
                 ProcessImageFile(CommandLineOptions, ImagePath);
             }
-            else
+            else if (Uri.IsWellFormedUriString(ImagePath, UriKind.Absolute))
             {
-                if (Uri.IsWellFormedUriString(ImagePath, UriKind.Absolute))
+                if (Uri.TryCreate(ImagePath, UriKind.Absolute, out Uri? WebURI))
                 {
-                    Uri WebURI;
-                    if (Uri.TryCreate(ImagePath, UriKind.Absolute, out WebURI))
+                    if (WebURI.Scheme == Uri.UriSchemeHttps)
                     {
-                        if (WebURI.Scheme == Uri.UriSchemeHttps)
+                        HttpClient Client = new();
+
+                        List<string> SupportedMimeTypes = ((string[])Settings["supportedImageFormats"]).ToList();
+                        SupportedMimeTypes.ForEach(x => Client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue(x)));
+
+                        Task<HttpResponseMessage> GetTask = Client.GetAsync(WebURI);
+                        GetTask.Wait();
+                        HttpResponseMessage Response = GetTask.Result;
+
+                        if (Response.IsSuccessStatusCode)
                         {
-                            WebClient Client = new();
-                            Client.Headers.Add("Accept", "image/*");
+                            string ResponseMimeType = Response.Content.Headers.ContentType.MediaType;
 
-                            string DownloadDirectory = Path.Combine(Path.GetTempPath(), "TYM-Web-Downloads");
-                            Directory.CreateDirectory(DownloadDirectory);
-
-                            string TempFile = Path.Combine(DownloadDirectory, Guid.NewGuid().ToString());
-                            byte[] Data = Client.DownloadData(WebURI.ToString());
-                            bool IsMimeValid = new List<string>() {
-                                "image/jpeg",
-                                "image/bmp",
-                                "image/gif",
-                                "image/png",
-                                "image/tiff",
-                                "image/webp"
-                            }.Any(x => Client.ResponseHeaders["Content-Type"].Contains(x));
-                            if (IsMimeValid)
+                            if (SupportedMimeTypes.Any(x => x == ResponseMimeType))
                             {
+                                Directory.CreateDirectory(DownloadDirectory);
+
+                                string TempFile = Path.Combine(DownloadDirectory, Guid.NewGuid().ToString());
+
+                                Task<byte[]> ReadTask = Response.Content.ReadAsByteArrayAsync();
+                                ReadTask.Wait();
+                                byte[] Data = ReadTask.Result;
+
                                 File.WriteAllBytes(TempFile, Data);
                                 ProcessImageFile(CommandLineOptions, TempFile);
                             }
                             else
                             {
-                                Console.WriteLine($"\x1b[31mError:\x1b[37m Server returned invalid mime type \"{Client.ResponseHeaders["Content-Type"]}\"!");
-                                Environment.Exit(1);
+                                LogExit(LogLevel.Error, Messages.Error_InvalidMimeType, ResponseMimeType);
                             }
                         }
                         else
                         {
-                            Console.WriteLine("\x1b[31mError:\x1b[37m Only HTTPS scheme supported!");
-                            Environment.Exit(1);
+                            LogExit(LogLevel.Error, Messages.Error_ResponseCode, (int)Response.StatusCode);
                         }
                     }
                     else
                     {
-                        Console.WriteLine("\x1b[31mError:\x1b[37m Can't parse URL!");
-                        Environment.Exit(1);
+                        LogExit(LogLevel.Error, Messages.Error_UnsupportedProtocol);
                     }
                 }
-                Console.WriteLine("\x1b[31mError:\x1b[37m Can't open file!");
-                Environment.Exit(1);
+                else
+                {
+                    LogExit(LogLevel.Error, Messages.Error_URLParseError);
+                }
+            }
+            else
+            {
+                LogExit(LogLevel.Error, Messages.Error_FileError);
             }
         }
 
-        private void ProcessImageFile(Options CommandLineOptions, string ImagePath)
+        private static void ProcessImageFile(Options CommandLineOptions, string ImagePath)
         {
             PropertyInfo? ResamplerProperty = typeof(KnownResamplers).GetProperty(CommandLineOptions.ResamplerName);
             if (ResamplerProperty == null)
             {
-                Console.WriteLine("\x1b[31mError:\x1b[37m Invalid resampler specified.\x1b[39m");
-                Environment.Exit(1);
+                LogExit(LogLevel.Error, Messages.Error_InvalidResampler);
             }
-            IResampler Resampler = (IResampler)ResamplerProperty.GetValue(typeof(KnownResamplers));
+            IResampler? Resampler = (IResampler)ResamplerProperty.GetValue(typeof(KnownResamplers));
             if (Resampler == null)
             {
-                Console.WriteLine("\x1b[31mError:\x1b[37m Error occured while fetching resampler.\x1b[39m");
-                Environment.Exit(1);
+                LogExit(LogLevel.Error, Messages.Error_ResamplerError);
             }
 
             Dictionary<string, ResizeMode> AvailableResizeModes = new(){
@@ -162,8 +236,7 @@ namespace TYM
             };
             if (!AvailableResizeModes.ContainsKey(CommandLineOptions.ResizeMethod))
             {
-                Console.WriteLine("\x1b[31mError:\x1b[37m Invalid resize mode.\x1b[39m");
-                Environment.Exit(1);
+                LogExit(LogLevel.Error, Messages.Error_InvalidResizeMode);
             }
             ResizeMode SelectedResizeMode = AvailableResizeModes.GetValueOrDefault(CommandLineOptions.ResizeMethod);
 

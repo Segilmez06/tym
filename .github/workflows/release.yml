@@ -1,97 +1,83 @@
-name: Build and draft release
+name: Release
 
 on:
-  push:
-    branches:
-      - main
+    push:
+        branches:
+            - main
 
 jobs:
-  
-  draft-release:
-    name: Draft new release
-    runs-on: ubuntu-latest
+    draft_release:
+        name: Draft new release
+        runs-on: ubuntu-latest
+
+        outputs:
+            release_tag: ${{ steps.project_version.outputs.TAG }}
+
+        steps:
     
-    outputs:
-      upload_url: ${{ steps.draft_release.outputs.upload_url }}
+            - name: Fetch source code
+              uses: actions/checkout@v3
 
-    steps:
-      - name: Fetch source code
-        uses: actions/checkout@v3
+            - name: Install XML tools
+              run: sudo apt install xmlstarlet
+              
+            - name: Fetch version string
+              run: echo "TAG=$(xmlstarlet select --template --value-of /Project/PropertyGroup/AssemblyVersion ./src/TYM.csproj)" >> $GITHUB_OUTPUT
+              id: project_version
 
-      - name: Install XML tools
-        run: sudo apt install xmlstarlet
-
-      - name: Fetch version string
-        run: echo "TAG=$(xmlstarlet select --template --value-of /Project/PropertyGroup/AssemblyVersion ./src/TYM.csproj)" >> $GITHUB_OUTPUT
-        id: version
-
-      - name: Draft release
-        uses: actions/create-release@v1
-        id: draft_release
-        env:
-          GITHUB_TOKEN: ${{ secrets.G_TOKEN }}
-        with:
-          tag_name: ${{ steps.version.outputs.TAG }}
-          release_name: TYM v${{ steps.version.outputs.TAG }}
-          draft: true
-          prerelease: false
+            - name: Draft release
+              uses: softprops/action-gh-release@v1
+              id: draft
+              env:
+                GITHUB_TOKEN: ${{ secrets.G_TOKEN }}
+              with:
+                tag_name: ${{ steps.project_version.outputs.TAG }}
+                name: TYM v${{ steps.project_version.outputs.TAG }}
+                draft: true
+                prerelease: false
+                body_path: CHANGELOG.md
 
 
-  release-assets:
-    name: Build and upload release assets
-    runs-on: ${{ matrix.os }}
+    build_artifacts:
+        name: Build release assets
+        runs-on: ${{ matrix.os }}
+        needs: draft_release
 
-    strategy:
-      matrix:
-        os: [windows-latest, ubuntu-latest, macos-latest]
+        strategy:
+            matrix:
+                include:
+                    - os: windows-latest
+                      target: win
+                      bin-extension: ".exe"
 
-    steps:
-      - name: Fetch source code
-        uses: actions/checkout@v3
+                    - os: ubuntu-latest
+                      target: linux
+                      bin-extension: ""
 
-      - name: Setup .NET Core
-        uses: actions/setup-dotnet@v3
-        with:
-          dotnet-version: '7.0.x'
+                    - os: macos-latest
+                      target: osx
+                      bin-extension: ""
 
-      - name: Fetch version string (win)
-        run: echo "TAG=$(./src/pub/TYM.exe --version | cut -c5- )" >> $GITHUB_OUTPUT
-        id: version
-        shell: bash
-        if: matrix.os == 'windows-latest'
+        steps:
+            
+            - name: Fetch source code
+              uses: actions/checkout@v3
 
-      - name: Fetch version string (*nix)
-        run: echo "TAG=$(./src/pub/TYM --version  | cut -c5- )" >> $GITHUB_OUTPUT
-        id: version
-        shell: bash
-        if: 
-          matrix.os == 'macos-latest'
-          matrix.os == 'ubuntu-latest'
+            - name: Setup .NET Core
+              uses: actions/setup-dotnet@v3
+              with:
+                dotnet-version: '7.0.x'
 
-      - name: Build
-        run: dotnet build src/TYM.csproj
+            - name: Build
+              run: dotnet build src/TYM.csproj
 
-      - name: Publish
-        run: dotnet publish src/TYM.csproj /p:PublishProfile=src/Properties/PublishProfiles/${{ matrix.os }}.pubxml
+            - name: Publish
+              run:  dotnet publish src/TYM.csproj -a x64 --os ${{ matrix.target }} -c Release -p:PublishProfile=Properties/PublishProfiles/PublishConfig.pubxml
 
-      - name: Upload release assets (win)
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.G_TOKEN }}
-        with:
-          upload_url: ${{ needs.create_release.outputs.upload_url }}
-          asset_name: TYM-${{ steps.version.outputs.TAG }}-${{ matrix.os }}
-          asset_path: ./src/pub/TYM.exe
-          asset_content_type: application/octet-stream
-        if: matrix.os == 'windows-latest'
+            - name: Rename output files
+              run: mv src/pub/TYM${{ matrix.bin-extension }} TYM-${{ needs.draft_release.outputs.release_tag }}-${{ matrix.target }}-bin${{ matrix.bin-extension }}
 
-      - name: Upload release assets (*nix)
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.G_TOKEN }}
-        with:
-          upload_url: ${{ needs.create_release.outputs.upload_url }}
-          asset_name: TYM-${{ steps.version.outputs.TAG }}-${{ matrix.os }}
-          asset_path: ./src/pub/TYM
-          asset_content_type: application/octet-stream
-        if: matrix.os == 'windows-latest'
+            - name: Upload artifact
+              run: gh release upload ${{ needs.draft_release.outputs.release_tag }} TYM-${{ needs.draft_release.outputs.release_tag }}-${{ matrix.target }}-bin${{ matrix.bin-extension }}
+              env:
+                GH_TOKEN: ${{ secrets.G_TOKEN }}
