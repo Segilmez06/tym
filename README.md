@@ -44,7 +44,7 @@ tym [--help] [--version] <file> [<options>]
 
 The fullscreen option overrides margin and size arguments.
 
-TYM uses special unicode characters to improve image scaling. That causes each character to contain 2 pixels vertically. That means if you specify top margin as 3, it will shift the output by 3 characters which is equals to 6 pixels.
+TYM uses special Unicode characters to improve image scaling. That causes each character to contain 2 pixels vertically. That means if you specify top margin as 3, it will shift the output by 3 characters which is equals to 6 pixels.
 
 ### Examples
 
@@ -87,3 +87,10 @@ For AOT binary compilation, check [official documentation](https://learn.microso
 ## Contributing
 
 You can create pull requests and issues to help development. Also starring the repo will give me motivation.
+
+## Credits
+
+Image library: [SixLabors ImageSharp](https://github.com/SixLabors/ImageSharp)
+
+
+TYM created by Segilmez06

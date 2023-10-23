@@ -2,6 +2,7 @@
 
 ## General
 
+- [x] Improve rendering
 - [ ] Add comments
-- [ ] Unwanted 1 pixel right shifting
-- [ ] Fix resize mode list printing and contents
+- [x] Fix unwanted 1 pixel right shifting
+- [x] Fix resize mode list

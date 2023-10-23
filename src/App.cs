@@ -10,6 +10,9 @@ using static TYM.Logger;
 
 namespace TYM
 {
+    /// <summary>
+    /// Special Unicode characters for rendering image
+    /// </summary>
     static class BlockChars
     {
         public static char TopBlockChar = '\u2580';
@@ -17,6 +20,9 @@ namespace TYM
         public static char EmptyBlockChar = '\u0020';
     }
 
+    /// <summary>
+    /// Command line options
+    /// </summary>
     public class Options
     {
         [Value(0, MetaName = "Path", Required = false, HelpText = "Path to the image file. Also supports web links. (DANGER: USE WEB LINKS AT YOUR OWN RISK!)")]
@@ -48,7 +54,7 @@ namespace TYM
 
 
 
-        [Option('m', "resize-method", Required = false, Default = "Contain", HelpText = "Resizing mode. Available options: Contain, Cover (Crop), Stretch")]
+        [Option('m', "resize-method", Required = false, Default = "Contain", HelpText = "Resizing mode. Available options: Contain, Cover (Crop), Stretch, Center")]
         public string? ResizeMethod { get; set; }
 
 
@@ -64,6 +70,9 @@ namespace TYM
 
     }
 
+    /// <summary>
+    /// Console logging utility
+    /// </summary>
     public static class Logger
     {
         public enum LogLevel
@@ -124,22 +133,35 @@ namespace TYM
 
     public class App
     {
+        // Get the command line arguments parser
         private readonly Parser CommandLineParser = Parser.Default;
 
+        /// <summary>
+        /// TYM instance entry point
+        /// </summary>
+        /// <param name="Arguments">Command line arguments</param>
         public App(string[] Arguments) 
         {
+            // Parse command line arguments and ignore executable name
             CommandLineParser.ParseArguments<Options>(Arguments.Skip(1)).WithParsed(Run);
         }
 
+        /// <summary>
+        /// Start the process
+        /// </summary>
+        /// <param name="CommandLineOptions">Command line options</param>
         private void Run(Options CommandLineOptions)
         {
+            // If listing resamplers requested
             if (CommandLineOptions.ListResamplers)
             {
+                // Print available resamplers and exit
                 LogMsg(LogLevel.Info, Messages.Message_AvailableResamplers);
                 typeof(KnownResamplers).GetProperties().ToList().ForEach(x => LogMsg(LogLevel.Verbose, x.Name));
                 Environment.Exit(0);
             }
 
+            // Get download directory path
             string DownloadDirectory = Path.Combine(Path.GetTempPath(), Settings.tempDirectoryName);
             if (CommandLineOptions.ClearCache)
             {
@@ -236,14 +258,19 @@ namespace TYM
             ResizeMode SelectedResizeMode = AvailableResizeModes.GetValueOrDefault(CommandLineOptions.ResizeMethod);
 
             Size TermSize = new(Console.BufferWidth, Console.BufferHeight);
+            Size TermTargetSize = new(TermSize.Width / 2, TermSize.Height);
+
+            if (TermTargetSize.Width % 2 != 0) TermTargetSize.Width += 1;
+            if (TermTargetSize.Height % 2 != 0) TermTargetSize.Height += 1;
+
             Size TargetSize = CommandLineOptions.UseFullscreen 
                 ? new(
                     TermSize.Width,
                     TermSize.Height * 2
                     )
                 : new(
-                    CommandLineOptions.Width < 1 ? TermSize.Width / 2 : CommandLineOptions.Width,
-                    CommandLineOptions.Height < 1 ? TermSize.Height : CommandLineOptions.Height
+                    CommandLineOptions.Width < 1 ? TermTargetSize.Width : CommandLineOptions.Width,
+                    CommandLineOptions.Height < 1 ? TermTargetSize.Height : CommandLineOptions.Height
                 );
 
             Image<Rgba32> Source = Image.Load<Rgba32>(ImagePath);
@@ -262,7 +289,7 @@ namespace TYM
             for (int y = 0; y < Source.Height / 2; y++)
             {
                 string Line = "";
-                Line += $"\x1b[{CommandLineOptions.MarginX}C";
+                Line += CommandLineOptions.MarginX > 0 ? $"\x1b[{CommandLineOptions.MarginX}C" : "";
                 for (int x = 0; x < Source.Width; x++)
                 {
                     Rgba32[] PixelColors = { Source[x, (y * 2)], Source[x, (y * 2) + 1] };
