@@ -62,8 +62,6 @@ namespace TYM
         [Option('c', "clear", Required = false, Default = false, HelpText = "Clear downloaded cache folder.")]
         public bool ClearCache { get; set; }
 
-        [Option('o', "open-cache-folder", Required = false, Default = false, HelpText = "Open downloaded cache folder in explorer.")]
-        public bool OpenCacheFolder { get; set; }
     }
 
     public static class Logger
@@ -143,15 +141,6 @@ namespace TYM
             }
 
             string DownloadDirectory = Path.Combine(Path.GetTempPath(), Settings.tempDirectoryName);
-            if (CommandLineOptions.OpenCacheFolder && Directory.Exists(DownloadDirectory))
-            {
-                Process.Start(new ProcessStartInfo()
-                {
-                    Arguments = DownloadDirectory,
-                    FileName = "explorer.exe"
-                });
-            }
-            
             if (CommandLineOptions.ClearCache)
             {
                 Directory.Delete(DownloadDirectory, true);

@@ -8,4 +8,4 @@
 
 ## CLI Args
 
-- [ ] Open web cache directory in explorer
+- [ ] ~~Open web cache directory in explorer~~
