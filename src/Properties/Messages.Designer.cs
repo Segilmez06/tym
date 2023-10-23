@@ -61,6 +61,15 @@ namespace TYM.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Clear downloaded cache folder..
+        /// </summary>
+        internal static string Args_ClearCache {
+            get {
+                return ResourceManager.GetString("Args.ClearCache", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Path to the image file. Also supports web links. (DANGER: USE WEB LINKS AT YOUR OWN RISK!).
         /// </summary>
         internal static string Args_FilePath {
@@ -187,7 +196,7 @@ namespace TYM.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Server returned code %1!.
+        ///   Looks up a localized string similar to Server returned code %s!.
         /// </summary>
         internal static string Error_ResponseCode {
             get {
@@ -228,6 +237,15 @@ namespace TYM.Properties {
         internal static string LogCategory_Info {
             get {
                 return ResourceManager.GetString("LogCategory.Info", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to .
+        /// </summary>
+        internal static string LogCategory_Verbose {
+            get {
+                return ResourceManager.GetString("LogCategory.Verbose", resourceCulture);
             }
         }
         

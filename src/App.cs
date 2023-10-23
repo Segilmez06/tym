@@ -1,5 +1,4 @@
 ﻿using CommandLine;
-using Newtonsoft.Json;
 using SixLabors.ImageSharp.Processing.Processors.Transforms;
 
 using System.Net.Http.Headers;
@@ -68,35 +67,39 @@ namespace TYM
     {
         public enum LogLevel
         {
+            Verbose,
             Info,
-            Warn,
+            Warning,
             Error
         }
 
         private static readonly Dictionary<LogLevel, int> LevelColors = new()
         {
-            { LogLevel.Info, 4 }, // Blue
-            { LogLevel.Warn, 3 }, // Yellow
-            { LogLevel.Error, 1 } // Red
+            { LogLevel.Verbose, 7 }, // White
+            { LogLevel.Info, 4 },    // Blue
+            { LogLevel.Warning, 3 },    // Yellow
+            { LogLevel.Error, 1 }    // Red
         };
 
         private static readonly Dictionary<LogLevel, string> LevelPrefix= new()
         {
+            { LogLevel.Verbose, Messages.LogCategory_Verbose },
             { LogLevel.Info, Messages.LogCategory_Info },
-            { LogLevel.Warn, Messages.LogCategory_Warning },
+            { LogLevel.Warning, Messages.LogCategory_Warning },
             { LogLevel.Error, Messages.LogCategory_Error }
         };
 
         private static readonly Dictionary<LogLevel, int> LevelExitCodes = new()
         {
+            { LogLevel.Verbose, 0 },
             { LogLevel.Info, 0 },
-            { LogLevel.Warn, 0 },
+            { LogLevel.Warning, 0 },
             { LogLevel.Error, 1 }
         };
 
         public static void LogMsg(LogLevel Level, string Message)
         {
-            Console.WriteLine($"\u001b[3{LevelColors[Level]}m{LevelPrefix[Level]}:\u001b[37m {Message}\u001b[39m");
+            Console.WriteLine($"\u001b[3{LevelColors[Level]}m{LevelPrefix[Level]}{((LevelPrefix[Level].Length > 0) ? ": " : "")}\u001b[37m{Message}\u001b[39m");
         }
 
         public static void LogExit(LogLevel Level, string Message)
@@ -129,23 +132,14 @@ namespace TYM
 
         private void Run(Options CommandLineOptions)
         {
-            Assembly ExecutingAssembly = Assembly.GetExecutingAssembly();
-            Stream SettingsStream = ExecutingAssembly.GetManifestResourceStream("TYM.settings.json");
-            string SettingsContent = new StreamReader(SettingsStream).ReadToEnd();
-
-            dynamic Settings = JsonConvert.DeserializeObject<dynamic>(SettingsContent);
-
             if (CommandLineOptions.ListResamplers)
             {
-                Console.WriteLine("\u001b[32mAvailable resampling algorithms:");
-                Console.Write("\x1b[33m");
-                typeof(KnownResamplers).GetProperties().ToList().ForEach(x => Console.WriteLine(x.Name));
-                Console.WriteLine("\x1b[39m");
-                
+                LogMsg(LogLevel.Info, Messages.Message_AvailableResamplers);
+                typeof(KnownResamplers).GetProperties().ToList().ForEach(x => LogMsg(LogLevel.Verbose, x.Name));
                 Environment.Exit(0);
             }
 
-            string DownloadDirectory = Path.Combine(Path.GetTempPath(), (string)Settings["tempDirectoryName"]);
+            string DownloadDirectory = Path.Combine(Path.GetTempPath(), Settings.tempDirectoryName);
             if (CommandLineOptions.ClearCache)
             {
                 Directory.Delete(DownloadDirectory, true);
@@ -164,7 +158,7 @@ namespace TYM
                     {
                         HttpClient Client = new();
 
-                        List<string> SupportedMimeTypes = ((string[])Settings["supportedImageFormats"]).ToList();
+                        List<string> SupportedMimeTypes = Settings.supportedImageFormats.Split(",").Select(x => x = $"image/{x}").ToList();
                         SupportedMimeTypes.ForEach(x => Client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue(x)));
 
                         Task<HttpResponseMessage> GetTask = Client.GetAsync(WebURI);

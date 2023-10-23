@@ -2,9 +2,9 @@
 
 ## General
 
-- [x] Optimize code and fragment info methods
-- [ ] Localization
-- [ ] ~~Add web link caching with hash checking~~
+- [x] Move settings to embedded resource
+- [x] Remove unused libraries
+- [ ] Add comments
 
 ## CLI Args
 
