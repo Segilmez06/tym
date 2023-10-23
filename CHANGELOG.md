@@ -2,12 +2,6 @@
 
 ## General
 
-- [x] Optimize code and fragment info methods
-- [x] Fix workflows (publishing)
 - [x] Move settings to embedded resource
-- [x] Optimize web requests
-- [x] Create console logging utility
+- [x] Remove unused libraries
 
-## CLI Args
-
-- [x] Clear web download cache
