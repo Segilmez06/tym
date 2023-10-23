@@ -117,70 +117,10 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="Args.ClearCache" xml:space="preserve">
-    <value>Clear downloaded cache folder.</value>
+  <data name="supportedImageFormats" xml:space="preserve">
+    <value>jpeg,bmp,gif,png,tiff,webp</value>
   </data>
-  <data name="Args.FilePath" xml:space="preserve">
-    <value>Path to the image file. Also supports web links. (DANGER: USE WEB LINKS AT YOUR OWN RISK!)</value>
-  </data>
-  <data name="Args.Height" xml:space="preserve">
-    <value>Output height as pixels. 1 char height = 2 pixels. Set to 0 for auto size.</value>
-  </data>
-  <data name="Args.ListResamplers" xml:space="preserve">
-    <value>List available resampling algorithms.</value>
-  </data>
-  <data name="Args.MarginX" xml:space="preserve">
-    <value>Left margin size as characters. Shifts the output from cursor start to right by specified character count. 1 char width = 1 pixel.</value>
-  </data>
-  <data name="Args.MarginY" xml:space="preserve">
-    <value>Top margin size as characters. Shifts the output from cursor start to bottom by specified character count. 1 char height = 2 pixels.</value>
-  </data>
-  <data name="Args.ResamplerName" xml:space="preserve">
-    <value>Resampling algorithm for downsizing.</value>
-  </data>
-  <data name="Args.ResizeMethod" xml:space="preserve">
-    <value>Resizing mode. Available options: Contain, Cover (Crop), Stretch</value>
-  </data>
-  <data name="Args.UseFullscreen" xml:space="preserve">
-    <value>Use fullscreen. This overrides margin and size arguments!</value>
-  </data>
-  <data name="Args.Width" xml:space="preserve">
-    <value>Output width as pixels. 1 char width = 1 pixel. Set to 0 for auto size.</value>
-  </data>
-  <data name="Error.FileError" xml:space="preserve">
-    <value>Failed to open the specified file!</value>
-  </data>
-  <data name="Error.InvalidMimeType" xml:space="preserve">
-    <value>Server returned invalid mime type "%s"!</value>
-  </data>
-  <data name="Error.InvalidResampler" xml:space="preserve">
-    <value>Invalid resampler specified!</value>
-  </data>
-  <data name="Error.InvalidResizeMode" xml:space="preserve">
-    <value>Invalid resize mode specified!</value>
-  </data>
-  <data name="Error.ResamplerError" xml:space="preserve">
-    <value>Failed to fetch resampler!</value>
-  </data>
-  <data name="Error.ResponseCode" xml:space="preserve">
-    <value>Server returned code %s!</value>
-  </data>
-  <data name="Error.UnsupportedProtocol" xml:space="preserve">
-    <value>Only HTTPS protocol is supported!</value>
-  </data>
-  <data name="Error.URLParseError" xml:space="preserve">
-    <value>Failed to parse the specified URL!</value>
-  </data>
-  <data name="LogCategory.Error" xml:space="preserve">
-    <value>ERROR</value>
-  </data>
-  <data name="LogCategory.Info" xml:space="preserve">
-    <value>INFO</value>
-  </data>
-  <data name="LogCategory.Warning" xml:space="preserve">
-    <value>WARNING</value>
-  </data>
-  <data name="Message.AvailableResamplers" xml:space="preserve">
-    <value>Available resampling algorithms:</value>
+  <data name="tempDirectoryName" xml:space="preserve">
+    <value>TYMwebfetch</value>
   </data>
 </root>

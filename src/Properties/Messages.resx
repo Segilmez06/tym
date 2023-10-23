@@ -118,72 +118,72 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="Args.ClearCache" xml:space="preserve">
-    <value>Resim önbelleği klasörünü temizle.</value>
+    <value>Clear downloaded cache folder.</value>
   </data>
   <data name="Args.FilePath" xml:space="preserve">
-    <value>Resim dosyasının konumu. Ağ bağlantıları da desteklenmektedir. (HARİCİ BAĞLANTILARI KULLANIRKEN DİKKATLİ OLUN!)</value>
+    <value>Path to the image file. Also supports web links. (DANGER: USE WEB LINKS AT YOUR OWN RISK!)</value>
   </data>
   <data name="Args.Height" xml:space="preserve">
-    <value>Pixel cinsinden çıktının yüksekliği. 1 karakter yüksekliği = 2 pixel. Otomatik boyutlandırma için 0'a ayarlayın.</value>
+    <value>Output height as pixels. 1 char height = 2 pixels. Set to 0 for auto size.</value>
   </data>
   <data name="Args.ListResamplers" xml:space="preserve">
-    <value>Ölçeklendirme algoritmalarını listele.</value>
+    <value>List available resampling algorithms.</value>
   </data>
   <data name="Args.MarginX" xml:space="preserve">
-    <value>Karakter cinsinden sol kenara olan uzaklık. Çıktıyı imleç konumundan belirtilen karakter sayısı kadar sağa kaydırır. 1 karakter genişliği = 1 pixel.</value>
+    <value>Left margin size as characters. Shifts the output from cursor start to right by specified character count. 1 char width = 1 pixel.</value>
   </data>
   <data name="Args.MarginY" xml:space="preserve">
-    <value>Karakter cinsinden üst kenara olan uzaklık. Çıktıyı imleç konumundan belirtilen karakter sayısı kadar aşağı kaydırır. 1 karakter genişliği = 2 pixel.</value>
+    <value>Top margin size as characters. Shifts the output from cursor start to bottom by specified character count. 1 char height = 2 pixels.</value>
   </data>
   <data name="Args.ResamplerName" xml:space="preserve">
-    <value>Kullanılan ölçeklendirme algoritması.</value>
+    <value>Resampling algorithm for downsizing.</value>
   </data>
   <data name="Args.ResizeMethod" xml:space="preserve">
-    <value>Boyutlandırma modu: Kullanılabilecek seçenekler: Contain, Cover (Crop), Stretch</value>
+    <value>Resizing mode. Available options: Contain, Cover (Crop), Stretch</value>
   </data>
   <data name="Args.UseFullscreen" xml:space="preserve">
-    <value>Tam ekran modu. Bu, boyut ve konum argümanlarını devre dışı bırakır.</value>
+    <value>Use fullscreen. This overrides margin and size arguments!</value>
   </data>
   <data name="Args.Width" xml:space="preserve">
-    <value>Pixel cinsinden çıktının genişliği. 1 karakter genişliği = 1 pixel. Otomatik boyutlandırma için 0'a ayarlayın.</value>
+    <value>Output width as pixels. 1 char width = 1 pixel. Set to 0 for auto size.</value>
   </data>
   <data name="Error.FileError" xml:space="preserve">
-    <value>Belirtilen dosya açılamadı!</value>
+    <value>Failed to open the specified file!</value>
   </data>
   <data name="Error.InvalidMimeType" xml:space="preserve">
-    <value>Sunucu geçersiz MIME türü ile yanıtladı: "%s"!</value>
+    <value>Server returned invalid mime type "%s"!</value>
   </data>
   <data name="Error.InvalidResampler" xml:space="preserve">
-    <value>Geçersiz ölçeklendirme algoritması belirtildi!</value>
+    <value>Invalid resampler specified!</value>
   </data>
   <data name="Error.InvalidResizeMode" xml:space="preserve">
-    <value>Geçersiz boyutlandırma modu belirtildi!</value>
+    <value>Invalid resize mode specified!</value>
   </data>
   <data name="Error.ResamplerError" xml:space="preserve">
-    <value>Ölçeklendirici getirilemedi!</value>
+    <value>Failed to fetch resampler!</value>
   </data>
   <data name="Error.ResponseCode" xml:space="preserve">
-    <value>Sunucu %s kodu gönderd!</value>
+    <value>Server returned code %s!</value>
   </data>
   <data name="Error.UnsupportedProtocol" xml:space="preserve">
-    <value>Sadece HTTPS protokolü desteklenmektedir!</value>
+    <value>Only HTTPS protocol is supported!</value>
   </data>
   <data name="Error.URLParseError" xml:space="preserve">
-    <value>Belitrilen URL ayrıştırılamadı!</value>
+    <value>Failed to parse the specified URL!</value>
   </data>
   <data name="LogCategory.Error" xml:space="preserve">
-    <value>HATA</value>
+    <value>ERROR</value>
   </data>
   <data name="LogCategory.Info" xml:space="preserve">
-    <value>BILGI</value>
+    <value>INFO</value>
   </data>
   <data name="LogCategory.Verbose" xml:space="preserve">
     <value />
   </data>
   <data name="LogCategory.Warning" xml:space="preserve">
-    <value>UYARI</value>
+    <value>WARNING</value>
   </data>
   <data name="Message.AvailableResamplers" xml:space="preserve">
-    <value>Kullanılabilecek ölçeklendirme algoritmaları:</value>
+    <value>Available resampling algorithms:</value>
   </data>
 </root>
