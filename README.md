@@ -20,7 +20,7 @@ Some browsers may block download because they filter all files with .exe suffix 
 
 No additional installation required.
 
-If you want to execute from a shell don't forget to update your `PATH` variable.
+If you want to execute TYM from a shell don't forget to update your `PATH` variable.
 
 ## Usage
 

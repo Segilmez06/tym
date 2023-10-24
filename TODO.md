@@ -2,7 +2,8 @@
 
 ## General
 
-- [x] Improve rendering
-- [ ] Add comments
-- [x] Fix unwanted 1 pixel right shifting
+- [x] Improve output rendering
+- [x] Add comments
+- [x] Fix pixel shifting
 - [x] Fix resize mode list
+- [x] Cleanup code
