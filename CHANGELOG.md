@@ -2,6 +2,8 @@
 
 ## General
 
-- [x] Move settings to embedded resource
-- [x] Remove unused libraries
-
+- [x] Improve output rendering
+- [x] Add comments
+- [x] Fix pixel shifting
+- [x] Fix resize mode list
+- [x] Cleanup code

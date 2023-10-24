@@ -1,6 +1,6 @@
 ﻿using CommandLine;
 using SixLabors.ImageSharp.Processing.Processors.Transforms;
-using System.Diagnostics;
+
 using System.Net.Http.Headers;
 using System.Reflection;
 
@@ -10,6 +10,10 @@ using static TYM.Logger;
 
 namespace TYM
 {
+
+    /// <summary>
+    /// Special Unicode characters for rendering image
+    /// </summary>
     static class BlockChars
     {
         public static char TopBlockChar = '\u2580';
@@ -17,6 +21,11 @@ namespace TYM
         public static char EmptyBlockChar = '\u0020';
     }
 
+
+
+    /// <summary>
+    /// Command line options
+    /// </summary>
     public class Options
     {
         [Value(0, MetaName = "Path", Required = false, HelpText = "Path to the image file. Also supports web links. (DANGER: USE WEB LINKS AT YOUR OWN RISK!)")]
@@ -48,7 +57,7 @@ namespace TYM
 
 
 
-        [Option('m', "resize-method", Required = false, Default = "Contain", HelpText = "Resizing mode. Available options: Contain, Cover (Crop), Stretch")]
+        [Option('m', "resize-method", Required = false, Default = "Contain", HelpText = "Resizing mode. Available options: Contain, Cover (Crop), Stretch, Center")]
         public string? ResizeMethod { get; set; }
 
 
@@ -64,6 +73,11 @@ namespace TYM
 
     }
 
+
+
+    /// <summary>
+    /// Console logging utility
+    /// </summary>
     public static class Logger
     {
         public enum LogLevel
@@ -122,86 +136,129 @@ namespace TYM
         }
     }
 
+
+
+    /// <summary>
+    /// TYM main instance
+    /// </summary>
     public class App
     {
+
+        /// <summary>
+        /// Get command line arguments parser
+        /// </summary>
         private readonly Parser CommandLineParser = Parser.Default;
 
+
+        /// <summary>
+        /// Available resize modes
+        /// </summary>
+        private readonly static Dictionary<string, ResizeMode> ResizeModes = new(){
+                {"Contain", ResizeMode.Max},
+                {"Cover", ResizeMode.Crop},
+                {"Crop", ResizeMode.Crop},
+                {"Stretch", ResizeMode.Stretch},
+                {"Center", ResizeMode.Pad}
+            };
+
+
+        /// <summary>
+        /// TYM instance entry point
+        /// </summary>
+        /// <param name="Arguments">Command line arguments</param>
         public App(string[] Arguments) 
         {
+            // Parse command line arguments and ignore executable name
             CommandLineParser.ParseArguments<Options>(Arguments.Skip(1)).WithParsed(Run);
         }
 
+
+        /// <summary>
+        /// Start the process
+        /// </summary>
+        /// <param name="CommandLineOptions">Command line options</param>
         private void Run(Options CommandLineOptions)
         {
+
+            // If listing resamplers requested
             if (CommandLineOptions.ListResamplers)
             {
+
+                // Print available resamplers and exit
                 LogMsg(LogLevel.Info, Messages.Message_AvailableResamplers);
                 typeof(KnownResamplers).GetProperties().ToList().ForEach(x => LogMsg(LogLevel.Verbose, x.Name));
                 Environment.Exit(0);
+
             }
 
-            string DownloadDirectory = Path.Combine(Path.GetTempPath(), Settings.tempDirectoryName);
+
+            // Get download directory path
             if (CommandLineOptions.ClearCache)
-            {
-                Directory.Delete(DownloadDirectory, true);
-            }
+                Directory.Delete(GetDownloadDirectory(), true);
 
+
+            // If path is local file
             string? ImagePath = CommandLineOptions.FilePath;
             if (Path.Exists(ImagePath))
             {
                 ProcessImageFile(CommandLineOptions, ImagePath);
             }
+
+
+            // If path is URL
             else if (Uri.IsWellFormedUriString(ImagePath, UriKind.Absolute))
             {
-                if (Uri.TryCreate(ImagePath, UriKind.Absolute, out Uri? WebURI))
-                {
-                    if (WebURI.Scheme == Uri.UriSchemeHttps)
-                    {
-                        HttpClient Client = new();
 
-                        List<string> SupportedMimeTypes = Settings.supportedImageFormats.Split(",").Select(x => x = $"image/{x}").ToList();
-                        SupportedMimeTypes.ForEach(x => Client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue(x)));
-
-                        Task<HttpResponseMessage> GetTask = Client.GetAsync(WebURI);
-                        GetTask.Wait();
-                        HttpResponseMessage Response = GetTask.Result;
-
-                        if (Response.IsSuccessStatusCode)
-                        {
-                            string ResponseMimeType = Response.Content.Headers.ContentType.MediaType;
-
-                            if (SupportedMimeTypes.Any(x => x == ResponseMimeType))
-                            {
-                                Directory.CreateDirectory(DownloadDirectory);
-
-                                string TempFile = Path.Combine(DownloadDirectory, Guid.NewGuid().ToString());
-
-                                Task<byte[]> ReadTask = Response.Content.ReadAsByteArrayAsync();
-                                ReadTask.Wait();
-                                byte[] Data = ReadTask.Result;
-
-                                File.WriteAllBytes(TempFile, Data);
-                                ProcessImageFile(CommandLineOptions, TempFile);
-                            }
-                            else
-                            {
-                                LogExit(LogLevel.Error, Messages.Error_InvalidMimeType, ResponseMimeType);
-                            }
-                        }
-                        else
-                        {
-                            LogExit(LogLevel.Error, Messages.Error_ResponseCode, (int)Response.StatusCode);
-                        }
-                    }
-                    else
-                    {
-                        LogExit(LogLevel.Error, Messages.Error_UnsupportedProtocol);
-                    }
-                }
-                else
-                {
+                // Parse the url
+                if(!Uri.TryCreate(ImagePath, UriKind.Absolute, out Uri? WebURI))
                     LogExit(LogLevel.Error, Messages.Error_URLParseError);
-                }
+
+
+                // Check if protocol is supported
+                if (WebURI.Scheme != Uri.UriSchemeHttps)
+                    LogExit(LogLevel.Error, Messages.Error_UnsupportedProtocol);
+
+
+                // Create HTTP client
+                HttpClient Client = new();
+
+
+                // Add request headers
+                GetSupportedMimeTypes().ForEach(x => Client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue(x)));
+
+
+                // Send GET request to download the file
+                Task<HttpResponseMessage> GetTask = Client.GetAsync(WebURI);
+                GetTask.Wait();
+                HttpResponseMessage Response = GetTask.Result;
+
+
+                // If response is success
+                if (!Response.IsSuccessStatusCode)
+                    LogExit(LogLevel.Error, Messages.Error_ResponseCode, (int)Response.StatusCode);
+
+
+                // Validate response MIME type
+                string ResponseMimeType = Response.Content.Headers.ContentType.MediaType;
+                if (!GetSupportedMimeTypes().Any(x => x == ResponseMimeType))
+                    LogExit(LogLevel.Error, Messages.Error_InvalidMimeType, ResponseMimeType);
+
+
+                // Create cache directory
+                Directory.CreateDirectory(GetDownloadDirectory());
+
+
+                // Save response to file
+                string TempFile = GenerateTempFileName();
+                Task<byte[]> ReadTask = Response.Content.ReadAsByteArrayAsync();
+                ReadTask.Wait();
+                byte[] Data = ReadTask.Result;
+                File.WriteAllBytes(TempFile, Data);
+
+
+                // Render the file
+                ProcessImageFile(CommandLineOptions, TempFile);
+
             }
             else
             {
@@ -209,60 +266,112 @@ namespace TYM
             }
         }
 
+
+        /// <summary>
+        /// Process the image by path
+        /// </summary>
+        /// <param name="CommandLineOptions">Command line options</param>
+        /// <param name="ImagePath">Path of the image file</param>
         private static void ProcessImageFile(Options CommandLineOptions, string ImagePath)
         {
+
+            // Get resampler from KnownResamplers class
             PropertyInfo? ResamplerProperty = typeof(KnownResamplers).GetProperty(CommandLineOptions.ResamplerName);
             if (ResamplerProperty == null)
-            {
                 LogExit(LogLevel.Error, Messages.Error_InvalidResampler);
-            }
+
             IResampler? Resampler = (IResampler)ResamplerProperty.GetValue(typeof(KnownResamplers));
             if (Resampler == null)
-            {
                 LogExit(LogLevel.Error, Messages.Error_ResamplerError);
-            }
 
-            Dictionary<string, ResizeMode> AvailableResizeModes = new(){
-                {"Contain", ResizeMode.Max},
-                {"Cover", ResizeMode.Crop},
-                {"Crop", ResizeMode.Crop},
-                {"Stretch", ResizeMode.Stretch},
-                {"Center", ResizeMode.Pad}
-            };
-            if (!AvailableResizeModes.ContainsKey(CommandLineOptions.ResizeMethod))
-            {
+
+            // Define available resize modes
+            if (!ResizeModes.ContainsKey(CommandLineOptions.ResizeMethod))
                 LogExit(LogLevel.Error, Messages.Error_InvalidResizeMode);
-            }
-            ResizeMode SelectedResizeMode = AvailableResizeModes.GetValueOrDefault(CommandLineOptions.ResizeMethod);
+            ResizeMode SelectedResizeMode = ResizeModes.GetValueOrDefault(CommandLineOptions.ResizeMethod);
 
-            Size TermSize = new(Console.BufferWidth, Console.BufferHeight);
-            Size TargetSize = CommandLineOptions.UseFullscreen 
-                ? new(
-                    TermSize.Width,
-                    TermSize.Height * 2
-                    )
-                : new(
-                    CommandLineOptions.Width < 1 ? TermSize.Width / 2 : CommandLineOptions.Width,
-                    CommandLineOptions.Height < 1 ? TermSize.Height : CommandLineOptions.Height
-                );
 
+            // Read image and resize
             Image<Rgba32> Source = Image.Load<Rgba32>(ImagePath);
             Source.Mutate(x => x.Resize(new ResizeOptions()
             {
-                Size = TargetSize,
+                Size = GetTargetSize(new(CommandLineOptions.Width, CommandLineOptions.Height), CommandLineOptions.UseFullscreen),
                 Mode = SelectedResizeMode,
                 Sampler = Resampler
             }));
 
+
+            // Get the output and print to console
+            string ImageOutput = GenerateColoredImageString(Source, new(CommandLineOptions.MarginX, CommandLineOptions.MarginY));
+            Console.Write(ImageOutput);
+
+
+            // Nothing left to do, so exit...
+            Environment.Exit(0);
+        }
+
+
+        /// <summary>
+        /// Get cache folder
+        /// </summary>
+        /// <returns>Cache folder path</returns>
+        private static string GetDownloadDirectory() => Path.Combine(Path.GetTempPath(), Settings.tempDirectoryName);
+        
+
+        /// <summary>
+        /// Generate new temp file
+        /// </summary>
+        /// <returns>Generated file path</returns>
+        private static string GenerateTempFileName() => Path.Combine(GetDownloadDirectory(), Guid.NewGuid().ToString());
+        
+
+        /// <summary>
+        /// Get supported MIME types
+        /// </summary>
+        /// <returns>List of types</returns>
+        private static List<string> GetSupportedMimeTypes() => Settings.supportedImageFormats.Split(",").Select(x => x = $"image/{x}").ToList();
+        
+
+        /// <summary>
+        /// Get target size by parameters
+        /// </summary>
+        /// <param name="SpecifiedSize">Manually requested size</param>
+        /// <param name="IsFullScreen">Whether to fill the whole terminal</param>
+        /// <returns>Target size</returns>
+        private static Size GetTargetSize(Size SpecifiedSize, bool IsFullScreen = false)
+        {
+            Size TermTargetSize = new(Console.BufferWidth / 2, Console.BufferHeight);
+
+            if (TermTargetSize.Width % 2 != 0) TermTargetSize.Width += 1;
+            if (TermTargetSize.Height % 2 != 0) TermTargetSize.Height += 1;
+
+            if (IsFullScreen)
+                return new(Console.BufferWidth, Console.BufferHeight * 2);
+
+            return new(
+                    SpecifiedSize.Width < 1 ? TermTargetSize.Width : SpecifiedSize.Width,
+                    SpecifiedSize.Height < 1 ? TermTargetSize.Height : SpecifiedSize.Height
+                );
+        }
+    
+
+        /// <summary>
+        /// Generates the output image's string by using VT100 color and position codes
+        /// </summary>
+        /// <param name="Source">Source image object</param>
+        /// <param name="Margins">Margin size</param>
+        /// <returns>Image output string</returns>
+        private static string GenerateColoredImageString(Image<Rgba32> Source, Point Margins)
+        {
             string Buffer = "";
-            for (int y = 0; y < CommandLineOptions.MarginY; y++)
+            for (int y = 0; y < Margins.Y; y++)
             {
                 Buffer += "\n";
             }
             for (int y = 0; y < Source.Height / 2; y++)
             {
                 string Line = "";
-                Line += $"\x1b[{CommandLineOptions.MarginX}C";
+                Line += Margins.X > 0 ? $"\x1b[{Margins.X}C" : "";
                 for (int x = 0; x < Source.Width; x++)
                 {
                     Rgba32[] PixelColors = { Source[x, (y * 2)], Source[x, (y * 2) + 1] };
@@ -286,10 +395,8 @@ namespace TYM
                 Buffer += "\x1b[0m";
                 Buffer += "\n";
             }
-
-            Console.Write(Buffer);
-
-            Environment.Exit(0);
+            return Buffer;
         }
     }
+
 }
