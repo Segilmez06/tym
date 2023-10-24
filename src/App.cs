@@ -11,7 +11,6 @@ using static TYM.Logger;
 namespace TYM
 {
 
-
     /// <summary>
     /// Special Unicode characters for rendering image
     /// </summary>
@@ -399,6 +398,5 @@ namespace TYM
             return Buffer;
         }
     }
-
 
 }
